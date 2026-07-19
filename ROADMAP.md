@@ -6,7 +6,7 @@
 
 ---
 
-## פאזה 0 — תשתית ✅ (ממתין לאישור צ'קפוינט)
+## פאזה 0 — תשתית ✅ (הושלם ואומת בפרודקשן)
 
 שלד רץ, Auth, לייאאוט משותף, design system, PWA בסיסי.
 
@@ -19,11 +19,9 @@
 - [x] Supabase migration: טבלת `profiles` + RLS + טריגר הרשמה + `is_manager()`
 - [x] PWA: manifest בעברית, אייקונים, service worker, installable
 - [x] `CLAUDE.md` + `ROADMAP.md`
-- [ ] **צ'קפוינט:** הקמת פרויקט Supabase אמיתי + Deploy ל-Vercel + התקנה בטלפון
+- [x] **צ'קפוינט:** פרויקט Supabase חי, Deploy ל-Vercel, התחברות מנהל אומתה בטלפון
 
-> **מה נדרש ממך לפני פאזה 1:** ליצור פרויקט Supabase, להריץ את ה-migration,
-> להכניס ערכים ל-`.env.local`, ולהפוך את המשתמש שלך ל-`manager`
-> (הוראות ב-`supabase/README.md`). אני אלווה אותך צעד־צעד.
+> פרודקשן: https://alexander-manager.vercel.app · Supabase פעיל · משתמש מנהל קיים.
 
 ---
 
