@@ -14,6 +14,7 @@ import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
 import { SendSchedule } from '@/pages/SendSchedule'
+import { AvailabilityPublic } from '@/pages/AvailabilityPublic'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/availability/:token" element={<AvailabilityPublic />} />
 
             <Route
               element={

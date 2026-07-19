@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Plus, Pencil, Trash2, X, Phone } from 'lucide-react'
+import { ArrowRight, Plus, Pencil, Trash2, X, Phone, Send, Check } from 'lucide-react'
 import {
   useEmployees,
   useSaveEmployee,
@@ -9,6 +9,7 @@ import {
 } from '@/lib/queries/employees'
 import type { StaffRole } from '@/types/database'
 import { STAFF_ROLES, ROLE_LABELS } from '@/lib/scheduling'
+import { toWaNumber, waLink } from '@/lib/whatsapp'
 import { shekelsToAgorot, agorotToShekels, formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -76,18 +77,57 @@ export function Employees() {
                   </a>
                 )}
               </div>
-              <button
-                onClick={() => setEditing(e)}
-                className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
-                aria-label="עריכה"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <AvailabilityLinkButton employee={e} />
+                <button
+                  onClick={() => setEditing(e)}
+                  className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
+                  aria-label="עריכה"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </div>
             </Card>
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+function AvailabilityLinkButton({ employee }: { employee: EmployeeWithRoles }) {
+  const [copied, setCopied] = useState(false)
+  const link = `${window.location.origin}/availability/${employee.avail_token}`
+  const message = `היי ${employee.full_name} 👋 שלח לי את הזמינות שלך לשבוע הבא דרך הקישור:\n${link}`
+  const wa = toWaNumber(employee.phone)
+
+  async function copy() {
+    await navigator.clipboard.writeText(link).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  if (wa) {
+    return (
+      <a
+        href={waLink(wa, message)}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-lg p-2 text-green-500 hover:bg-neutral-800"
+        aria-label="שלח קישור זמינות בוואטסאפ"
+      >
+        <Send className="h-4 w-4" />
+      </a>
+    )
+  }
+  return (
+    <button
+      onClick={copy}
+      className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
+      aria-label="העתק קישור זמינות"
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+    </button>
   )
 }
 

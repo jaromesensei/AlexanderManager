@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import { useRequirements } from '@/lib/queries/requirements'
+import { useWeekAvailability, type WeekAvailRow } from '@/lib/queries/availability'
 import {
   useShifts,
   useCreateShift,
@@ -44,6 +45,7 @@ export function Schedule() {
   const to = toISODate(addDays(weekStart, 6))
   const { data: shifts, isLoading } = useShifts(from, to)
   const { data: reqs } = useRequirements()
+  const { data: weekAvail } = useWeekAvailability(from, to)
   const [addingDate, setAddingDate] = useState<string | null>(null)
 
   // דרישות: ברירת מחדל + התאמות ליום. יום עם התאמה מחליף לגמרי את ברירת המחדל.
@@ -167,7 +169,11 @@ export function Schedule() {
                 ))}
 
                 {addingDate === iso && (
-                  <AddShiftForm date={iso} onDone={() => setAddingDate(null)} />
+                  <AddShiftForm
+                    date={iso}
+                    avail={weekAvail ?? []}
+                    onDone={() => setAddingDate(null)}
+                  />
                 )}
               </Card>
             )
@@ -273,7 +279,15 @@ const DEFAULT_TIMES: Record<ShiftType, { start: string; end: string }> = {
   evening: { start: '17:00', end: '23:00' },
 }
 
-function AddShiftForm({ date, onDone }: { date: string; onDone: () => void }) {
+function AddShiftForm({
+  date,
+  avail,
+  onDone,
+}: {
+  date: string
+  avail: WeekAvailRow[]
+  onDone: () => void
+}) {
   const { data: employees } = useEmployees()
   const create = useCreateShift()
   const active = (employees ?? []).filter((e) => e.active)
@@ -283,6 +297,18 @@ function AddShiftForm({ date, onDone }: { date: string; onDone: () => void }) {
   const [role, setRole] = useState<StaffRole>('waiter')
   const [start, setStart] = useState(DEFAULT_TIMES.evening.start)
   const [end, setEnd] = useState(DEFAULT_TIMES.evening.end)
+
+  // זמינות ליום ולמשמרת הנבחרים
+  const availableIds = new Set<string>()
+  const unavailableIds = new Set<string>()
+  for (const a of avail) {
+    if (a.work_date === date && a.shift === shift)
+      (a.available ? availableIds : unavailableIds).add(a.employee_id)
+  }
+  const rank = (id: string) =>
+    availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1
+  const sortedEmployees = [...active].sort((a, b) => rank(a.id) - rank(b.id))
+  const chosenUnavailable = employeeId && unavailableIds.has(employeeId)
 
   const selected = active.find((e) => e.id === employeeId)
   const roleOptions = selected?.roles.length
@@ -328,12 +354,23 @@ function AddShiftForm({ date, onDone }: { date: string; onDone: () => void }) {
         <>
           <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
             <option value="">— בחר עובד —</option>
-            {active.map((e) => (
+            {sortedEmployees.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.full_name}
+                {availableIds.has(e.id)
+                  ? ' · זמין'
+                  : unavailableIds.has(e.id)
+                    ? ' · לא זמין'
+                    : ''}
               </option>
             ))}
           </Select>
+
+          {chosenUnavailable && (
+            <p className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-300">
+              ⚠️ העובד סימן שאינו זמין במשמרת זו
+            </p>
+          )}
 
           <div className="flex gap-2">
             {SHIFTS.map((s) => (

@@ -13,6 +13,16 @@ export interface Employee {
   hourly_rate: number | null
   active: boolean
   user_id: string | null
+  avail_token: string
+  created_at: string
+}
+
+export interface ShiftAvailability {
+  id: string
+  employee_id: string
+  work_date: string
+  shift: ShiftType
+  available: boolean
   created_at: string
 }
 
