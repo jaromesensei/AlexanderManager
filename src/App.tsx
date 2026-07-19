@@ -7,6 +7,9 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Login } from '@/pages/Login'
 import { Home } from '@/pages/Home'
 import { Invoices } from '@/pages/Invoices'
+import { InvoiceForm } from '@/pages/InvoiceForm'
+import { InvoiceDetail } from '@/pages/InvoiceDetail'
+import { Suppliers } from '@/pages/Suppliers'
 import { Schedule } from '@/pages/Schedule'
 
 export default function App() {
@@ -30,6 +33,38 @@ export default function App() {
                 element={
                   <ProtectedRoute managerOnly>
                     <Invoices />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/new"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <InvoiceForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/:id"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <InvoiceDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/:id/edit"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <InvoiceForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/suppliers"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <Suppliers />
                   </ProtectedRoute>
                 }
               />

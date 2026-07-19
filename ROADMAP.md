@@ -25,13 +25,14 @@
 
 ---
 
-## פאזה 1 — חשבוניות ופוד קוסט ⬜
+## פאזה 1 — חשבוניות ופוד קוסט 🔄
 
-- [ ] סכמת DB: suppliers, products, product_aliases, product_categories,
-      invoices, invoice_items, price_points, price_alerts, dishes, recipe_items
-- [ ] Storage bucket לחשבוניות + RLS
-- [ ] Edge Function: חילוץ חשבונית עם Claude Vision (structured output)
-- [ ] מסך צילום/העלאת חשבונית + תצוגת חילוץ ניתנת לעריכה
+- [x] סכמת DB: suppliers, products, product_aliases, product_categories,
+      invoices, invoice_items, price_points, price_alerts, dishes, recipe_items (+RLS)
+- [x] Storage bucket פרטי לחשבוניות + RLS (מנהל-בלבד)
+- [x] ניהול ספקים (הוספה/עריכה/מחיקה)
+- [x] מסך חשבונית: צילום/העלאה ל-Storage + הזנה ידנית של שורות + עריכה
+- [ ] Edge Function: חילוץ חשבונית עם Claude Vision (structured output) ← **הבא בתור**
 - [ ] קטלוג מוצרים מנורמל + מיפוי וריאציות כתיב (aliases)
 - [ ] היסטוריית מחירים + זיהוי חריגות (price drift) והתראות
 - [ ] פוד קוסט: מתכונים → עלות למנה ואחוז פוד קוסט

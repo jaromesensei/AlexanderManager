@@ -1,19 +1,118 @@
-// טיפוסי בסיס הנתונים. בפאזה 0 מוגדרות רק טבלאות הליבה (profiles).
-// טבלאות המודולים (חשבוניות, סידור) יתווספו בפאזות הבאות.
-// בהמשך אפשר לייצר קובץ זה אוטומטית עם `supabase gen types typescript`.
+// טיפוסי בסיס הנתונים. מוגדרים ידנית לפי ה-migrations.
+// בהמשך אפשר לייצר אוטומטית עם `supabase gen types typescript`.
 
 export type UserRole = 'manager' | 'employee'
+export type InvoiceStatus = 'pending' | 'confirmed'
+
+export interface ProductCategory {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface Supplier {
+  id: string
+  name: string
+  phone: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface Product {
+  id: string
+  canonical_name: string
+  category_id: string | null
+  default_unit: string | null
+  created_at: string
+}
+
+export interface ProductAlias {
+  id: string
+  product_id: string
+  alias_name: string
+  supplier_id: string | null
+  created_at: string
+}
+
+export interface Invoice {
+  id: string
+  supplier_id: string | null
+  invoice_number: string | null
+  invoice_date: string | null
+  image_path: string | null
+  total_amount: number | null
+  status: InvoiceStatus
+  raw_extraction: unknown | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface InvoiceItem {
+  id: string
+  invoice_id: string
+  product_id: string | null
+  raw_name: string
+  quantity: number | null
+  unit: string | null
+  unit_price: number | null
+  line_total: number | null
+  position: number
+  created_at: string
+}
+
+export interface PricePoint {
+  id: string
+  product_id: string
+  supplier_id: string | null
+  invoice_id: string | null
+  unit: string | null
+  unit_price: number
+  observed_at: string
+  created_at: string
+}
+
+export interface PriceAlert {
+  id: string
+  product_id: string
+  invoice_item_id: string | null
+  previous_avg: number | null
+  new_price: number | null
+  pct_change: number | null
+  acknowledged: boolean
+  created_at: string
+}
+
+export interface Dish {
+  id: string
+  name: string
+  category: string | null
+  menu_price: number | null
+  created_at: string
+}
+
+export interface RecipeItem {
+  id: string
+  dish_id: string
+  product_id: string
+  quantity: number
+  unit: string | null
+  created_at: string
+}
+
+// עזר לטיפוסי Supabase client (Row/Insert/Update/Relationships)
+interface TableShape<T> {
+  Row: T
+  Insert: Partial<T>
+  Update: Partial<T>
+  Relationships: []
+}
 
 export interface Database {
   public: {
     Tables: {
       profiles: {
-        Row: {
-          id: string
-          full_name: string | null
-          role: UserRole
-          created_at: string
-        }
+        Row: { id: string; full_name: string | null; role: UserRole; created_at: string }
         Insert: {
           id: string
           full_name?: string | null
@@ -26,12 +125,24 @@ export interface Database {
           role?: UserRole
           created_at?: string
         }
+        Relationships: []
       }
+      product_categories: TableShape<ProductCategory>
+      suppliers: TableShape<Supplier>
+      products: TableShape<Product>
+      product_aliases: TableShape<ProductAlias>
+      invoices: TableShape<Invoice>
+      invoice_items: TableShape<InvoiceItem>
+      price_points: TableShape<PricePoint>
+      price_alerts: TableShape<PriceAlert>
+      dishes: TableShape<Dish>
+      recipe_items: TableShape<RecipeItem>
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: {
       user_role: UserRole
+      invoice_status: InvoiceStatus
     }
   }
 }

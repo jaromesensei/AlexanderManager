@@ -15,6 +15,24 @@ export function formatCurrency(agorot: number): string {
   }).format(agorot / 100)
 }
 
+/** המרת שקלים (מספר עשרוני) לאגורות (שלם). */
+export function shekelsToAgorot(shekels: number): number {
+  return Math.round(shekels * 100)
+}
+
+/** המרת אגורות לשקלים (מספר עשרוני) — לשימוש בשדות קלט. */
+export function agorotToShekels(agorot: number): number {
+  return agorot / 100
+}
+
+/** פורמט אגורות כמספר שקלים ללא סימן מטבע (למשל לשדה קלט או טבלה). */
+export function formatAgorot(agorot: number): string {
+  return (agorot / 100).toLocaleString('he-IL', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 /** פורמט תאריך עברי קצר: יום/חודש/שנה */
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
