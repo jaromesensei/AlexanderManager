@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { APP_VERSION } from '@/version'
 
 export function Login() {
   const { signIn } = useAuth()
@@ -75,6 +76,7 @@ export function Login() {
         <p className="mt-6 text-center text-sm text-neutral-500">
           אין לך חשבון? פנה למנהל המסעדה.
         </p>
+        <p className="mt-4 text-center text-xs text-neutral-600">גרסה {APP_VERSION}</p>
       </div>
     </div>
   )

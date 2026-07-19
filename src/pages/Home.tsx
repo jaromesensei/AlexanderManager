@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Receipt, CalendarDays, ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card } from '@/components/ui/Card'
+import { APP_VERSION } from '@/version'
 
 export function Home() {
   const { profile, isManager } = useAuth()
@@ -50,6 +51,8 @@ export function Home() {
           </Card>
         </Link>
       </div>
+
+      <p className="pt-2 text-center text-xs text-neutral-600">גרסה {APP_VERSION}</p>
     </div>
   )
 }
