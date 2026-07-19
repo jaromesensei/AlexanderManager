@@ -109,6 +109,7 @@ function EmployeeForm({
   const [roles, setRoles] = useState<StaffRole[]>(
     employee?.roles.map((r) => r.role) ?? []
   )
+  const [error, setError] = useState<string | null>(null)
   const busy = save.isPending || del.isPending
 
   function toggleRole(role: StaffRole) {
@@ -119,17 +120,22 @@ function EmployeeForm({
 
   async function submit() {
     if (!name.trim()) return
-    await save.mutateAsync({
-      id: employee?.id,
-      input: {
-        full_name: name.trim(),
-        phone: phone.trim() || null,
-        hourly_rate: rate ? shekelsToAgorot(parseFloat(rate)) : null,
-        active,
-        roles,
-      },
-    })
-    onClose()
+    setError(null)
+    try {
+      await save.mutateAsync({
+        id: employee?.id,
+        input: {
+          full_name: name.trim(),
+          phone: phone.trim() || null,
+          hourly_rate: rate ? shekelsToAgorot(parseFloat(rate)) : null,
+          active,
+          roles,
+        },
+      })
+      onClose()
+    } catch (err) {
+      setError('שמירה נכשלה: ' + (err as Error).message)
+    }
   }
 
   async function remove() {
@@ -196,6 +202,10 @@ function EmployeeForm({
         />
         <span className="text-sm">עובד פעיל</span>
       </label>
+
+      {error && (
+        <p className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-400">{error}</p>
+      )}
 
       <div className="flex gap-2">
         <Button onClick={submit} loading={busy} disabled={!name.trim()} className="flex-1">

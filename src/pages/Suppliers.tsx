@@ -92,17 +92,23 @@ function SupplierForm({
   const [name, setName] = useState(supplier?.name ?? '')
   const [phone, setPhone] = useState(supplier?.phone ?? '')
   const [notes, setNotes] = useState(supplier?.notes ?? '')
+  const [error, setError] = useState<string | null>(null)
   const busy = create.isPending || update.isPending || del.isPending
 
   async function save() {
     if (!name.trim()) return
+    setError(null)
     const payload = { name: name.trim(), phone: phone.trim(), notes: notes.trim() }
-    if (supplier) {
-      await update.mutateAsync({ id: supplier.id, ...payload })
-    } else {
-      await create.mutateAsync(payload)
+    try {
+      if (supplier) {
+        await update.mutateAsync({ id: supplier.id, ...payload })
+      } else {
+        await create.mutateAsync(payload)
+      }
+      onClose()
+    } catch (err) {
+      setError('שמירה נכשלה: ' + (err as Error).message)
     }
-    onClose()
   }
 
   async function remove() {
@@ -140,6 +146,10 @@ function SupplierForm({
         onChange={(e) => setNotes(e.target.value)}
         rows={2}
       />
+      {error && (
+        <p className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-400">{error}</p>
+      )}
+
       <div className="flex gap-2">
         <Button onClick={save} loading={busy} disabled={!name.trim()} className="flex-1">
           שמירה
