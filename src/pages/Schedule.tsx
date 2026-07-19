@@ -46,7 +46,9 @@ export function Schedule() {
   const { data: shifts, isLoading } = useShifts(from, to)
   const { data: reqs } = useRequirements()
   const { data: weekAvail } = useWeekAvailability(from, to)
+  const { data: employees } = useEmployees()
   const [addingDate, setAddingDate] = useState<string | null>(null)
+  const [view, setView] = useState<'schedule' | 'availability'>('schedule')
 
   // דרישות: ברירת מחדל + התאמות ליום. יום עם התאמה מחליף לגמרי את ברירת המחדל.
   const requiredForWeekday = useMemo(() => {
@@ -98,6 +100,22 @@ export function Schedule() {
         </div>
       </div>
 
+      {/* מתג תצוגה: סידור / זמינות */}
+      <div className="flex gap-2">
+        {(['schedule', 'availability'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={cn(
+              'flex-1 rounded-xl py-2 text-sm font-semibold transition-colors',
+              view === v ? 'bg-brand-700 text-white' : 'bg-neutral-800 text-neutral-300'
+            )}
+          >
+            {v === 'schedule' ? 'סידור' : 'זמינות'}
+          </button>
+        ))}
+      </div>
+
       {/* ניווט שבוע */}
       <Card className="flex items-center justify-between py-2">
         <button
@@ -122,7 +140,7 @@ export function Schedule() {
         </button>
       </Card>
 
-      {(shifts?.length ?? 0) > 0 && (
+      {view === 'schedule' && (shifts?.length ?? 0) > 0 && (
         <Link to={`/schedule/send/${from}`}>
           <Button className="w-full">
             <Send className="h-4 w-4" />
@@ -131,7 +149,9 @@ export function Schedule() {
         </Link>
       )}
 
-      {isLoading ? (
+      {view === 'availability' ? (
+        <AvailabilityBoard days={days} weekAvail={weekAvail ?? []} employees={employees ?? []} />
+      ) : isLoading ? (
         <div className="flex justify-center py-10">
           <Spinner />
         </div>
@@ -180,6 +200,66 @@ export function Schedule() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function AvailabilityBoard({
+  days,
+  weekAvail,
+  employees,
+}: {
+  days: Date[]
+  weekAvail: WeekAvailRow[]
+  employees: { id: string; full_name: string }[]
+}) {
+  const nameById: Record<string, string> = {}
+  for (const e of employees) nameById[e.id] = e.full_name
+
+  return (
+    <div className="space-y-3">
+      {days.map((day, i) => {
+        const iso = toISODate(day)
+        return (
+          <Card key={iso} className="space-y-2">
+            <div>
+              <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
+              <span className="mr-2 text-sm text-neutral-500">{formatDate(day)}</span>
+            </div>
+            {SHIFTS.map((shift) => {
+              const names = weekAvail
+                .filter((a) => a.work_date === iso && a.shift === shift && a.available)
+                .map((a) => nameById[a.employee_id])
+                .filter(Boolean)
+              const Icon = shift === 'morning' ? Sun : Moon
+              return (
+                <div key={shift} className="flex items-start gap-2">
+                  <Icon
+                    className={cn(
+                      'mt-0.5 h-4 w-4 shrink-0',
+                      shift === 'morning' ? 'text-amber-400' : 'text-indigo-400'
+                    )}
+                  />
+                  {names.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {names.map((n, idx) => (
+                        <span
+                          key={idx}
+                          className="rounded-full bg-green-950/50 px-2 py-0.5 text-xs text-green-300"
+                        >
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-neutral-600">אין זמינות</span>
+                  )}
+                </div>
+              )
+            })}
+          </Card>
+        )
+      })}
     </div>
   )
 }
