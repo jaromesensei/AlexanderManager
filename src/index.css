@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-neutral-950 text-neutral-100 antialiased;
+    font-family: 'Assistant', system-ui, sans-serif;
+    /* מונע bounce לבן בקצוות בטלפון */
+    overscroll-behavior-y: none;
+  }
+
+  /* מספרים תמיד LTR גם בתוך טקסט RTL */
+  .num {
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline-block;
+  }
+}
+
+@layer utilities {
+  /* מרווח בטוח לאזור התחתון בטלפונים עם notch */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
