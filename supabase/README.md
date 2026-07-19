@@ -5,7 +5,27 @@
 ## מבנה
 
 - `migrations/` — קבצי SQL ממוספרים. כל שינוי סכמה = migration חדש.
-- (בהמשך) `functions/` — Edge Functions (חילוץ חשבוניות עם Claude וכו').
+- `functions/extract-invoice/` — Edge Function לחילוץ חשבונית עם Claude Vision.
+
+## Edge Function: extract-invoice
+
+מחלצת נתונים מתמונת חשבונית עם Claude (structured outputs). מפתח Claude נשמר
+כסוד בצד שרת בלבד.
+
+**פריסה (CLI):**
+```bash
+supabase functions deploy extract-invoice
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+# אופציונלי: מודל זול יותר לחיסכון
+# supabase secrets set EXTRACT_MODEL=claude-haiku-4-5
+```
+
+**פריסה מלוח הבקרה:** Edge Functions → Create a function → `extract-invoice` →
+הדבק את תוכן `functions/extract-invoice/index.ts` → Deploy. הגדר את הסוד
+`ANTHROPIC_API_KEY` תחת Edge Functions → Secrets.
+
+הפונקציה משתמשת ב-`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+(מוזרקים אוטומטית) + `ANTHROPIC_API_KEY` (סוד שאתה מגדיר).
 
 ## הרצה ראשונית (חד־פעמי)
 

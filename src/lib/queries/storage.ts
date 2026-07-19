@@ -29,3 +29,29 @@ export async function getInvoiceImageUrl(path: string): Promise<string | null> {
 export async function deleteInvoiceImage(path: string): Promise<void> {
   await supabase.storage.from(BUCKET).remove([path])
 }
+
+export interface ExtractedItem {
+  name: string
+  quantity: number
+  unit: string
+  unit_price: number
+  line_total: number
+}
+
+export interface ExtractedInvoice {
+  supplier_name: string
+  invoice_number: string
+  invoice_date: string
+  total: number
+  items: ExtractedItem[]
+}
+
+/** מריץ חילוץ אוטומטי (Claude Vision) על תמונה שהועלתה. */
+export async function extractInvoice(path: string): Promise<ExtractedInvoice> {
+  const { data, error } = await supabase.functions.invoke('extract-invoice', {
+    body: { path },
+  })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data.extracted as ExtractedInvoice
+}

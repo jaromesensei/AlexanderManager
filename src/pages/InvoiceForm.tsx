@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, Plus, Trash2, Camera, Loader2 } from 'lucide-react'
+import { ArrowRight, Plus, Trash2, Camera, Loader2, Sparkles } from 'lucide-react'
 import {
   useCreateInvoice,
   useInvoice,
@@ -8,7 +8,11 @@ import {
   type InvoiceInput,
 } from '@/lib/queries/invoices'
 import { useSuppliers } from '@/lib/queries/suppliers'
-import { uploadInvoiceImage, getInvoiceImageUrl } from '@/lib/queries/storage'
+import {
+  uploadInvoiceImage,
+  getInvoiceImageUrl,
+  extractInvoice,
+} from '@/lib/queries/storage'
 import {
   cn,
   formatCurrency,
@@ -61,6 +65,8 @@ export function InvoiceForm() {
   const [imagePath, setImagePath] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [extracting, setExtracting] = useState(false)
+  const [extractNote, setExtractNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // טעינת חשבונית קיימת לעריכה
@@ -111,6 +117,42 @@ export function InvoiceForm() {
       setError('העלאת התמונה נכשלה: ' + (err as Error).message)
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function handleExtract() {
+    if (!imagePath) return
+    setExtracting(true)
+    setError(null)
+    setExtractNote(null)
+    try {
+      const ex = await extractInvoice(imagePath)
+      if (ex.invoice_number) setInvoiceNumber(ex.invoice_number)
+      if (ex.invoice_date) setInvoiceDate(ex.invoice_date)
+      if (ex.total) setTotalShekels(String(ex.total))
+      if (ex.items?.length) {
+        setItems(
+          ex.items.map((it) => ({
+            raw_name: it.name ?? '',
+            quantity: it.quantity ? String(it.quantity) : '',
+            unit: it.unit ?? '',
+            unit_price: it.unit_price ? String(it.unit_price) : '',
+          }))
+        )
+      }
+      // ניסיון להתאים ספק קיים לפי השם
+      const name = ex.supplier_name?.trim()
+      if (name && suppliers) {
+        const match = suppliers.find(
+          (s) => s.name.trim() === name || s.name.includes(name) || name.includes(s.name)
+        )
+        if (match) setSupplierId(match.id)
+        else setExtractNote(`הספק "${name}" זוהה — בחר או הוסף אותו ידנית`)
+      }
+    } catch (err) {
+      setError('החילוץ נכשל: ' + (err as Error).message)
+    } finally {
+      setExtracting(false)
     }
   }
 
@@ -203,6 +245,25 @@ export function InvoiceForm() {
             disabled={uploading}
           />
         </label>
+
+        {imagePath && (
+          <>
+            <Button
+              onClick={handleExtract}
+              loading={extracting}
+              disabled={uploading}
+              className="w-full"
+            >
+              <Sparkles className="h-4 w-4" />
+              {extracting ? 'מחלץ...' : 'חלץ אוטומטית עם AI'}
+            </Button>
+            {extractNote && (
+              <p className="rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-300">
+                {extractNote}
+              </p>
+            )}
+          </>
+        )}
       </Card>
 
       {/* פרטי החשבונית */}
