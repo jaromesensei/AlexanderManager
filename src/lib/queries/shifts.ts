@@ -45,6 +45,26 @@ export function useCreateShift() {
   })
 }
 
+export function useUpdateShift() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string
+      patch: Partial<Pick<ShiftAssignment, 'role' | 'start_time'>>
+    }) => {
+      const { error } = await supabase
+        .from('shift_assignments')
+        .update(patch as never)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+  })
+}
+
 export function useDeleteShift() {
   const qc = useQueryClient()
   return useMutation({

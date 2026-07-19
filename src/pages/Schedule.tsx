@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
   Send,
 } from 'lucide-react'
-import { useEmployees } from '@/lib/queries/employees'
+import { useEmployees, type EmployeeWithRoles } from '@/lib/queries/employees'
 import { useRequirements } from '@/lib/queries/requirements'
 import {
   useWeekAvailability,
@@ -22,6 +22,7 @@ import {
 import {
   useShifts,
   useCreateShift,
+  useUpdateShift,
   useDeleteShift,
   type ShiftRow,
 } from '@/lib/queries/shifts'
@@ -42,7 +43,6 @@ import {
 import { formatDate, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Select } from '@/components/ui/Select'
 import { Spinner } from '@/components/ui/Spinner'
 
 export function Schedule() {
@@ -53,7 +53,6 @@ export function Schedule() {
   const { data: reqs } = useRequirements()
   const { data: weekAvail } = useWeekAvailability(from, to)
   const { data: employees } = useEmployees()
-  const [addingDate, setAddingDate] = useState<string | null>(null)
   const [view, setView] = useState<'schedule' | 'availability'>('schedule')
 
   // דרישות: ברירת מחדל + התאמות ליום. יום עם התאמה מחליף לגמרי את ברירת המחדל.
@@ -171,41 +170,24 @@ export function Schedule() {
           {days.map((day, i) => {
             const iso = toISODate(day)
             const dayShifts = byDate[iso] ?? []
+            const req = requiredForWeekday(i)
             return (
-              <Card key={iso} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
-                    <span className="mr-2 text-sm text-neutral-500">
-                      {formatDate(day)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setAddingDate(addingDate === iso ? null : iso)}
-                    className="rounded-lg p-1.5 text-brand-400 hover:bg-neutral-800"
-                    aria-label="הוסף משמרת"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
+              <Card key={iso} className="space-y-2.5">
+                <div>
+                  <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
+                  <span className="mr-2 text-sm text-neutral-500">{formatDate(day)}</span>
                 </div>
-
-                <Coverage dayShifts={dayShifts} required={requiredForWeekday(i)} />
-
-                {dayShifts.length === 0 && addingDate !== iso && (
-                  <p className="text-sm text-neutral-600">אין שיבוצים</p>
-                )}
-
-                {dayShifts.map((s) => (
-                  <ShiftLine key={s.id} shift={s} />
-                ))}
-
-                {addingDate === iso && (
-                  <AddShiftForm
+                {SHIFTS.map((sh) => (
+                  <ShiftSection
+                    key={sh}
                     date={iso}
+                    shift={sh}
+                    assignments={dayShifts.filter((s) => s.shift === sh)}
+                    required={req[sh]}
                     avail={weekAvail ?? []}
-                    onDone={() => setAddingDate(null)}
+                    employees={employees ?? []}
                   />
-                )}
+                ))}
               </Card>
             )
           })}
@@ -294,251 +276,227 @@ function AvailabilityBoard({
   )
 }
 
-function Coverage({
-  dayShifts,
-  required,
-}: {
-  dayShifts: ShiftRow[]
-  required: Record<ShiftType, Partial<Record<StaffRole, number>>>
-}) {
-  const rows = SHIFTS.map((shift) => {
-    const assigned: Partial<Record<StaffRole, number>> = {}
-    for (const s of dayShifts)
-      if (s.shift === shift) assigned[s.role] = (assigned[s.role] ?? 0) + 1
-    const roles = STAFF_ROLES.map((role) => ({
-      role,
-      have: assigned[role] ?? 0,
-      need: required[shift][role] ?? 0,
-    })).filter((r) => r.need > 0 || r.have > 0)
-    return { shift, roles }
-  }).filter((r) => r.roles.length > 0)
+const SMALL_SELECT =
+  'h-8 rounded-lg border border-neutral-700 bg-neutral-900 px-1.5 text-xs text-neutral-100 focus:border-brand-500 focus:outline-none'
 
-  if (rows.length === 0) return null
-
-  return (
-    <div className="space-y-1.5">
-      {rows.map(({ shift, roles }) => (
-        <div key={shift} className="flex flex-wrap items-center gap-1.5">
-          {shift === 'morning' ? (
-            <Sun className="h-3.5 w-3.5 text-amber-400" />
-          ) : (
-            <Moon className="h-3.5 w-3.5 text-indigo-400" />
-          )}
-          {roles.map(({ role, have, need }) => {
-            const short = have < need
-            return (
-              <span
-                key={role}
-                className={cn(
-                  'rounded-full px-2 py-0.5 text-xs num',
-                  short
-                    ? 'bg-red-950/60 text-red-300'
-                    : need > 0
-                      ? 'bg-green-950/50 text-green-300'
-                      : 'bg-neutral-800 text-neutral-400'
-                )}
-              >
-                {ROLE_LABELS[role]} {have}
-                {need > 0 && `/${need}`}
-              </span>
-            )
-          })}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function ShiftLine({ shift }: { shift: ShiftRow }) {
-  const del = useDeleteShift()
-  const ShiftIcon = shift.shift === 'morning' ? Sun : Moon
-  return (
-    <div className="flex items-center justify-between rounded-xl bg-neutral-800/50 px-3 py-2">
-      <div className="flex items-center gap-2">
-        <ShiftIcon
-          className={cn(
-            'h-4 w-4',
-            shift.shift === 'morning' ? 'text-amber-400' : 'text-indigo-400'
-          )}
-        />
-        <div>
-          <p className="text-sm font-medium">
-            {shift.employee?.full_name ?? 'עובד'}
-            <span className="mr-1.5 text-neutral-400">· {ROLE_LABELS[shift.role]}</span>
-          </p>
-          {shift.start_time && (
-            <p className="num text-xs text-neutral-400">משעה {shortTime(shift.start_time)}</p>
-          )}
-        </div>
-      </div>
-      <button
-        onClick={() => del.mutate(shift.id)}
-        className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-700 hover:text-red-400"
-        aria-label="הסר"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  )
-}
-
-function AddShiftForm({
+function ShiftSection({
   date,
+  shift,
+  assignments,
+  required,
   avail,
-  onDone,
+  employees,
 }: {
   date: string
+  shift: ShiftType
+  assignments: ShiftRow[]
+  required: Partial<Record<StaffRole, number>>
   avail: WeekAvailRow[]
-  onDone: () => void
+  employees: EmployeeWithRoles[]
 }) {
-  const { data: employees } = useEmployees()
   const create = useCreateShift()
-  const active = (employees ?? []).filter((e) => e.active)
+  const update = useUpdateShift()
+  const del = useDeleteShift()
+  const [open, setOpen] = useState(false)
+  const [defStart, setDefStart] = useState(DEFAULT_START[shift])
 
-  const [employeeId, setEmployeeId] = useState('')
-  const [shift, setShift] = useState<ShiftType>('evening')
-  const [role, setRole] = useState<StaffRole>('waiter')
-  const [start, setStart] = useState(DEFAULT_START.evening)
+  const active = employees.filter((e) => e.active)
+  const empById: Record<string, EmployeeWithRoles> = {}
+  for (const e of active) empById[e.id] = e
 
-  // זמינות ליום ולמשמרת הנבחרים
+  // זמינות ליום ולמשמרת
   const availableIds = new Set<string>()
   const unavailableIds = new Set<string>()
-  for (const a of avail) {
+  for (const a of avail)
     if (a.work_date === date && a.shift === shift)
       (a.available ? availableIds : unavailableIds).add(a.employee_id)
+
+  const assignedIds = new Set(assignments.map((a) => a.employee_id))
+  const rankOf = (id: string) => (availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1)
+  const pickable = [...active].sort((a, b) => rankOf(a.id) - rankOf(b.id))
+
+  // כיסוי
+  const byRole: Partial<Record<StaffRole, number>> = {}
+  for (const a of assignments) byRole[a.role] = (byRole[a.role] ?? 0) + 1
+  const covRoles = STAFF_ROLES.map((role) => ({
+    role,
+    have: byRole[role] ?? 0,
+    need: required[role] ?? 0,
+  })).filter((r) => r.need > 0 || r.have > 0)
+
+  // כפילות: אותו עובד יותר מפעם אחת במשמרת זו
+  const dupCount: Record<string, number> = {}
+  for (const a of assignments) dupCount[a.employee_id] = (dupCount[a.employee_id] ?? 0) + 1
+  const hasDup = Object.values(dupCount).some((n) => n > 1)
+
+  function toggle(emp: EmployeeWithRoles) {
+    const existing = assignments.find((a) => a.employee_id === emp.id)
+    if (existing) {
+      del.mutate(existing.id)
+    } else {
+      create.mutate({
+        employee_id: emp.id,
+        work_date: date,
+        shift,
+        role: emp.roles[0]?.role ?? 'waiter',
+        start_time: defStart,
+        end_time: null,
+      })
+    }
   }
-  const rank = (id: string) => (availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1)
-  const sortedEmployees = [...active].sort((a, b) => rank(a.id) - rank(b.id))
-  const chosenUnavailable = employeeId && unavailableIds.has(employeeId)
 
-  const selected = active.find((e) => e.id === employeeId)
-  const roleOptions = selected?.roles.length
-    ? selected.roles.map((r) => r.role)
-    : STAFF_ROLES
-
-  function pickShift(s: ShiftType) {
-    setShift(s)
-    setStart(DEFAULT_START[s])
-  }
-
-  async function submit() {
-    if (!employeeId) return
-    await create.mutateAsync({
-      employee_id: employeeId,
-      work_date: date,
-      shift,
-      role,
-      start_time: start || null,
-      end_time: null,
-    })
-    onDone()
-  }
-
+  const Icon = shift === 'morning' ? Sun : Moon
   return (
-    <div className="space-y-3 rounded-xl border border-brand-800 bg-neutral-900 p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">שיבוץ חדש</span>
-        <button onClick={onDone} className="text-neutral-400 hover:text-neutral-100">
-          <X className="h-4 w-4" />
-        </button>
+    <div className="space-y-2 rounded-xl border border-neutral-800 p-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Icon
+            className={cn(
+              'h-4 w-4',
+              shift === 'morning' ? 'text-amber-400' : 'text-indigo-400'
+            )}
+          />
+          <span className="text-sm font-semibold">{SHIFT_LABELS[shift]}</span>
+        </div>
+        <div className="flex flex-wrap justify-end gap-1">
+          {covRoles.map(({ role, have, need }) => (
+            <span
+              key={role}
+              className={cn(
+                'num rounded-full px-2 py-0.5 text-xs',
+                have < need
+                  ? 'bg-red-950/60 text-red-300'
+                  : need > 0
+                    ? 'bg-green-950/50 text-green-300'
+                    : 'bg-neutral-800 text-neutral-400'
+              )}
+            >
+              {ROLE_LABELS[role]} {have}
+              {need > 0 && `/${need}`}
+            </span>
+          ))}
+        </div>
       </div>
 
-      {active.length === 0 ? (
-        <p className="text-sm text-neutral-400">
-          אין עובדים פעילים.{' '}
-          <Link to="/employees" className="text-brand-400 underline">
-            הוסף עובדים
-          </Link>
-        </p>
-      ) : (
-        <>
-          {/* בחירת משמרת קודם - משפיעה על הזמינות */}
-          <div className="flex gap-2">
-            {SHIFTS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => pickShift(s)}
-                className={cn(
-                  'flex-1 rounded-xl py-2 text-sm font-medium',
-                  shift === s ? 'bg-brand-700 text-white' : 'bg-neutral-800 text-neutral-300'
-                )}
+      {hasDup && (
+        <p className="text-xs text-red-400">⚠️ עובד משובץ פעמיים במשמרת זו</p>
+      )}
+
+      {/* משובצים */}
+      {assignments.map((a) => {
+        const roles = empById[a.employee_id]?.roles.map((r) => r.role) ?? []
+        return (
+          <div
+            key={a.id}
+            className="flex items-center gap-2 rounded-lg bg-neutral-800/50 px-2 py-1.5"
+          >
+            <span className="flex-1 truncate text-sm font-medium">
+              {a.employee?.full_name ?? 'עובד'}
+            </span>
+            {roles.length > 1 ? (
+              <select
+                value={a.role}
+                onChange={(e) =>
+                  update.mutate({ id: a.id, patch: { role: e.target.value as StaffRole } })
+                }
+                className={SMALL_SELECT}
               >
-                {SHIFT_LABELS[s]}
-              </button>
-            ))}
-          </div>
-
-          {/* עובדים - זמינים ירוקים וראשונים */}
-          <div>
-            <p className="mb-1.5 text-xs text-neutral-400">
-              בחר עובד (ירוק = זמין למשמרת זו)
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {sortedEmployees.map((e) => {
-                const isAvail = availableIds.has(e.id)
-                const isUnavail = unavailableIds.has(e.id)
-                const isSel = employeeId === e.id
-                return (
-                  <button
-                    key={e.id}
-                    type="button"
-                    onClick={() => {
-                      setEmployeeId(e.id)
-                      const rs = e.roles.map((r) => r.role)
-                      if (rs.length) setRole(rs[0])
-                    }}
-                    className={cn(
-                      'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
-                      isSel
-                        ? 'bg-brand-700 text-white ring-2 ring-brand-400'
-                        : isAvail
-                          ? 'bg-green-950/60 text-green-300'
-                          : isUnavail
-                            ? 'bg-neutral-800 text-neutral-500'
-                            : 'bg-neutral-800 text-neutral-300'
-                    )}
-                  >
-                    {e.full_name}
-                    {isUnavail && ' · לא זמין'}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {chosenUnavailable && (
-            <p className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-300">
-              ⚠️ העובד סימן שאינו זמין במשמרת זו
-            </p>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <Select value={role} onChange={(e) => setRole(e.target.value as StaffRole)}>
-              {roleOptions.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </Select>
-            <Select value={start} onChange={(e) => setStart(e.target.value)}>
+                {roles.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs text-neutral-400">{ROLE_LABELS[a.role]}</span>
+            )}
+            <select
+              value={shortTime(a.start_time)}
+              onChange={(e) => update.mutate({ id: a.id, patch: { start_time: e.target.value } })}
+              className={cn(SMALL_SELECT, 'num')}
+              dir="ltr"
+            >
               {START_TIMES.map((t) => (
                 <option key={t} value={t}>
-                  משעה {t}
+                  {t}
                 </option>
               ))}
-            </Select>
+            </select>
+            <button
+              onClick={() => del.mutate(a.id)}
+              className="rounded-lg p-1 text-neutral-500 hover:text-red-400"
+              aria-label="הסר"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
+        )
+      })}
 
-          <Button
-            onClick={submit}
-            loading={create.isPending}
-            disabled={!employeeId}
-            className="w-full"
-          >
-            הוסף לסידור
-          </Button>
-        </>
+      {/* מילוי מהיר */}
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-neutral-700 py-1.5 text-sm text-brand-400 hover:border-brand-600"
+        >
+          <Plus className="h-4 w-4" />
+          מלא משמרת
+        </button>
+      ) : (
+        <div className="space-y-2 rounded-lg bg-neutral-950/60 p-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-400">שעת התחלה:</span>
+            <select
+              value={defStart}
+              onChange={(e) => setDefStart(e.target.value)}
+              className={cn(SMALL_SELECT, 'num')}
+              dir="ltr"
+            >
+              {START_TIMES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setOpen(false)}
+              className="mr-auto text-neutral-400 hover:text-neutral-100"
+              aria-label="סגור"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-xs text-neutral-500">
+            הקלק על עובד להוספה/הסרה. ירוק = זמין למשמרת.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {pickable.map((e) => {
+              const isAssigned = assignedIds.has(e.id)
+              const isAvail = availableIds.has(e.id)
+              const isUnavail = unavailableIds.has(e.id)
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => toggle(e)}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                    isAssigned
+                      ? 'bg-brand-700 text-white'
+                      : isAvail
+                        ? 'bg-green-950/60 text-green-300'
+                        : isUnavail
+                          ? 'bg-neutral-800 text-neutral-500'
+                          : 'bg-neutral-800 text-neutral-300'
+                  )}
+                >
+                  {isAssigned && '✓ '}
+                  {e.full_name}
+                  {isUnavail && !isAssigned && ' · לא זמין'}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       )}
     </div>
   )
