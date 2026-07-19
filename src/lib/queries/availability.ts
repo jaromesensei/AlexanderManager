@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { ShiftType } from '@/types/database'
 
@@ -11,6 +11,7 @@ export interface AvailEntry {
 export interface AvailData {
   full_name: string
   availability: AvailEntry[]
+  locked: boolean
 }
 
 /** קריאת זמינות עובד לפי טוקן (עמוד ציבורי, ללא התחברות). */
@@ -44,6 +45,21 @@ export interface WeekAvailRow {
   work_date: string
   shift: ShiftType
   available: boolean
+}
+
+/** פתיחת נעילת הזמינות לשבוע (מאפשר לעובדים לשלוח שוב). צד מנהל. */
+export function useUnlockWeek() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (weekStart: string) => {
+      const { error } = await supabase
+        .from('availability_locks')
+        .delete()
+        .eq('week_start', weekStart)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shift_availability'] }),
+  })
 }
 
 /** זמינות כל העובדים לשבוע (צד מנהל). */

@@ -14,7 +14,11 @@ import {
 } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import { useRequirements } from '@/lib/queries/requirements'
-import { useWeekAvailability, type WeekAvailRow } from '@/lib/queries/availability'
+import {
+  useWeekAvailability,
+  useUnlockWeek,
+  type WeekAvailRow,
+} from '@/lib/queries/availability'
 import {
   useShifts,
   useCreateShift,
@@ -152,7 +156,12 @@ export function Schedule() {
       )}
 
       {view === 'availability' ? (
-        <AvailabilityBoard days={days} weekAvail={weekAvail ?? []} employees={employees ?? []} />
+        <AvailabilityBoard
+          days={days}
+          weekAvail={weekAvail ?? []}
+          employees={employees ?? []}
+          weekStart={from}
+        />
       ) : isLoading ? (
         <div className="flex justify-center py-10">
           <Spinner />
@@ -210,16 +219,35 @@ function AvailabilityBoard({
   days,
   weekAvail,
   employees,
+  weekStart,
 }: {
   days: Date[]
   weekAvail: WeekAvailRow[]
   employees: { id: string; full_name: string }[]
+  weekStart: string
 }) {
   const nameById: Record<string, string> = {}
   for (const e of employees) nameById[e.id] = e.full_name
+  const unlock = useUnlockWeek()
+  const [unlocked, setUnlocked] = useState(false)
+
+  async function doUnlock() {
+    if (!confirm('לפתוח לעובדים לערוך מחדש את הזמינות לשבוע זה?')) return
+    await unlock.mutateAsync(weekStart)
+    setUnlocked(true)
+    setTimeout(() => setUnlocked(false), 2500)
+  }
 
   return (
     <div className="space-y-3">
+      <Button
+        variant="secondary"
+        onClick={doUnlock}
+        loading={unlock.isPending}
+        className="w-full"
+      >
+        {unlocked ? 'נפתח לעריכה ✓' : '🔓 פתח זמינות לעובדים (השבוע הזה)'}
+      </Button>
       {days.map((day, i) => {
         const iso = toISODate(day)
         return (

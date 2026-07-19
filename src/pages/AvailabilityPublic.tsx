@@ -31,10 +31,10 @@ export function AvailabilityPublic() {
 
   const [name, setName] = useState<string | null>(null)
   const [avail, setAvail] = useState<Record<string, boolean>>({})
+  const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState(false)
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -44,11 +44,11 @@ export function AvailabilityPublic() {
   useEffect(() => {
     let active = true
     setLoading(true)
-    setSent(false)
     getAvailability(token, from, to)
       .then((data) => {
         if (!active) return
         setName(data.full_name)
+        setLocked(data.locked)
         const map: Record<string, boolean> = {}
         for (const a of data.availability) map[cellKey(a.work_date, a.shift)] = a.available
         setAvail(map)
@@ -61,8 +61,8 @@ export function AvailabilityPublic() {
   }, [token, from, to])
 
   function toggle(date: string, shift: ShiftType) {
+    if (locked) return
     setAvail((prev) => ({ ...prev, [cellKey(date, shift)]: !prev[cellKey(date, shift)] }))
-    setSent(false)
   }
 
   async function submit() {
@@ -76,9 +76,13 @@ export function AvailabilityPublic() {
           entries.push({ work_date: iso, shift, available: !!avail[cellKey(iso, shift)] })
       }
       await submitAvailability(token, entries)
-      setSent(true)
-    } catch {
-      setError('השליחה נכשלה, נסה שוב.')
+      setLocked(true)
+    } catch (err) {
+      setError(
+        (err as Error).message?.includes('locked')
+          ? 'כבר שלחת זמינות לשבוע זה. לשינוי פנה למנהל.'
+          : 'השליחה נכשלה, נסה שוב.'
+      )
     } finally {
       setSaving(false)
     }
@@ -101,6 +105,12 @@ export function AvailabilityPublic() {
           היי {name} 👋 סמן מתי אתה יכול לעבוד
         </p>
       </div>
+
+      {locked && (
+        <div className="mb-3 rounded-xl border border-amber-800/60 bg-amber-950/30 px-3 py-2 text-center text-sm text-amber-200">
+          🔒 כבר שלחת זמינות לשבוע זה. לשינוי פנה למנהל.
+        </div>
+      )}
 
       {/* ניווט שבוע */}
       <div className="mb-3 flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900 px-2 py-2">
@@ -143,11 +153,11 @@ export function AvailabilityPublic() {
                     <button
                       key={shift}
                       onClick={() => toggle(iso, shift)}
+                      disabled={locked}
                       className={cn(
                         'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
-                        on
-                          ? 'bg-green-700 text-white'
-                          : 'bg-neutral-800 text-neutral-400'
+                        on ? 'bg-green-700 text-white' : 'bg-neutral-800 text-neutral-400',
+                        locked && 'opacity-60'
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -168,10 +178,16 @@ export function AvailabilityPublic() {
       {error && <p className="mt-3 text-center text-sm text-red-400">{error}</p>}
 
       <div className="sticky bottom-4 mt-4">
-        <Button onClick={submit} loading={saving} size="lg" className="w-full">
-          {sent ? (
+        <Button
+          onClick={submit}
+          loading={saving}
+          disabled={locked}
+          size="lg"
+          className="w-full"
+        >
+          {locked ? (
             <>
-              <Check className="h-5 w-5" /> נשלח! אפשר לעדכן שוב
+              <Check className="h-5 w-5" /> נשלח ונעול 🔒
             </>
           ) : (
             'שלח זמינות'
