@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   SlidersHorizontal,
+  Send,
 } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import { useRequirements } from '@/lib/queries/requirements'
@@ -118,6 +119,15 @@ export function Schedule() {
           <ChevronLeft className="h-5 w-5" />
         </button>
       </Card>
+
+      {(shifts?.length ?? 0) > 0 && (
+        <Link to={`/schedule/send/${from}`}>
+          <Button className="w-full">
+            <Send className="h-4 w-4" />
+            שלח לצוות בוואטסאפ
+          </Button>
+        </Link>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-10">

@@ -13,6 +13,7 @@ import { Suppliers } from '@/pages/Suppliers'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
+import { SendSchedule } from '@/pages/SendSchedule'
 
 export default function App() {
   return (
@@ -84,6 +85,14 @@ export default function App() {
                 element={
                   <ProtectedRoute managerOnly>
                     <Requirements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedule/send/:from"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <SendSchedule />
                   </ProtectedRoute>
                 }
               />
