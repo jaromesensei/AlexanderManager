@@ -483,7 +483,11 @@ function AddShiftForm({
                   <button
                     key={e.id}
                     type="button"
-                    onClick={() => setEmployeeId(e.id)}
+                    onClick={() => {
+                      setEmployeeId(e.id)
+                      const rs = e.roles.map((r) => r.role)
+                      if (rs.length) setRole(rs[0])
+                    }}
                     className={cn(
                       'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                       isSel
