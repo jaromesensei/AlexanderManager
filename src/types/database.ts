@@ -139,7 +139,12 @@ export interface Database {
       recipe_items: TableShape<RecipeItem>
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      process_invoice_prices: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
+    }
     Enums: {
       user_role: UserRole
       invoice_status: InvoiceStatus

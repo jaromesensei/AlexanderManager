@@ -1,16 +1,59 @@
 import { Link } from 'react-router-dom'
-import { Plus, Store, Receipt, ChevronLeft } from 'lucide-react'
+import { Plus, Store, Receipt, ChevronLeft, TrendingUp, X } from 'lucide-react'
 import { useInvoices } from '@/lib/queries/invoices'
+import { useOpenAlerts, useAcknowledgeAlert } from '@/lib/queries/alerts'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
+
+function PriceAlerts() {
+  const { data: alerts } = useOpenAlerts()
+  const ack = useAcknowledgeAlert()
+  if (!alerts?.length) return null
+
+  return (
+    <div className="space-y-2">
+      {alerts.map((a) => (
+        <div
+          key={a.id}
+          className="flex items-center justify-between rounded-2xl border border-amber-800/60 bg-amber-950/30 p-3"
+        >
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 shrink-0 text-amber-400" />
+            <div>
+              <p className="font-semibold text-amber-200">
+                {a.product?.canonical_name ?? 'מוצר'} עלה{' '}
+                <span className="num">+{a.pct_change}%</span>
+              </p>
+              <p className="text-sm text-amber-400/80">
+                {a.previous_avg != null && a.new_price != null && (
+                  <>
+                    ממוצע {formatCurrency(a.previous_avg)} ← {formatCurrency(a.new_price)}
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => ack.mutate(a.id)}
+            aria-label="אישור"
+            className="rounded-lg p-2 text-amber-400/70 hover:bg-amber-900/40 hover:text-amber-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function Invoices() {
   const { data: invoices, isLoading } = useInvoices()
 
   return (
     <div className="space-y-4">
+      <PriceAlerts />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">חשבוניות</h1>
         <div className="flex gap-2">

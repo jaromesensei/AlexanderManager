@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Invoice, InvoiceItem, InvoiceStatus, Supplier } from '@/types/database'
+import { ALERTS_KEY } from './alerts'
+
+/** מפעיל עיבוד מחירים + התראות בצד השרת (רק לחשבונית מאושרת). */
+async function processPrices(invoiceId: string) {
+  const { error } = await supabase.rpc(
+    'process_invoice_prices',
+    { p_invoice_id: invoiceId } as never
+  )
+  if (error) throw error
+}
 
 export interface InvoiceListRow extends Invoice {
   supplier: Pick<Supplier, 'id' | 'name'> | null
@@ -98,9 +108,13 @@ export function useCreateInvoice() {
       if (error) throw error
       const created = data as { id: string }
       await replaceItems(created.id, items)
+      if (header.status === 'confirmed') await processPrices(created.id)
       return created
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LIST_KEY })
+      qc.invalidateQueries({ queryKey: ALERTS_KEY })
+    },
   })
 }
 
@@ -115,11 +129,13 @@ export function useUpdateInvoice() {
         .eq('id', id)
       if (error) throw error
       await replaceItems(id, items)
+      if (header.status === 'confirmed') await processPrices(id)
       return { id }
     },
     onSuccess: ({ id }) => {
       qc.invalidateQueries({ queryKey: LIST_KEY })
       qc.invalidateQueries({ queryKey: detailKey(id) })
+      qc.invalidateQueries({ queryKey: ALERTS_KEY })
     },
   })
 }
