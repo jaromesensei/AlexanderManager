@@ -3,6 +3,63 @@
 
 export type UserRole = 'manager' | 'employee'
 export type InvoiceStatus = 'pending' | 'confirmed'
+export type StaffRole = 'waiter' | 'host' | 'bar' | 'shift_manager'
+export type ShiftType = 'morning' | 'evening'
+
+export interface Employee {
+  id: string
+  full_name: string
+  phone: string | null
+  hourly_rate: number | null
+  active: boolean
+  user_id: string | null
+  created_at: string
+}
+
+export interface EmployeeRole {
+  employee_id: string
+  role: StaffRole
+}
+
+export interface StaffingRequirement {
+  id: string
+  weekday: number | null
+  shift: ShiftType
+  role: StaffRole
+  required_count: number
+  created_at: string
+}
+
+export interface Availability {
+  id: string
+  employee_id: string
+  weekday: number
+  start_time: string | null
+  end_time: string | null
+  created_at: string
+}
+
+export interface AvailabilityException {
+  id: string
+  employee_id: string
+  date: string
+  type: 'off' | 'extra'
+  start_time: string | null
+  end_time: string | null
+  created_at: string
+}
+
+export interface ShiftAssignment {
+  id: string
+  employee_id: string
+  work_date: string
+  shift: ShiftType
+  role: StaffRole
+  start_time: string | null
+  end_time: string | null
+  status: string
+  created_at: string
+}
 
 export interface ProductCategory {
   id: string
@@ -137,6 +194,12 @@ export interface Database {
       price_alerts: TableShape<PriceAlert>
       dishes: TableShape<Dish>
       recipe_items: TableShape<RecipeItem>
+      employees: TableShape<Employee>
+      employee_roles: TableShape<EmployeeRole>
+      staffing_requirements: TableShape<StaffingRequirement>
+      availability: TableShape<Availability>
+      availability_exceptions: TableShape<AvailabilityException>
+      shift_assignments: TableShape<ShiftAssignment>
     }
     Views: Record<string, never>
     Functions: {

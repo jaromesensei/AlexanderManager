@@ -11,6 +11,7 @@ import { InvoiceForm } from '@/pages/InvoiceForm'
 import { InvoiceDetail } from '@/pages/InvoiceDetail'
 import { Suppliers } from '@/pages/Suppliers'
 import { Schedule } from '@/pages/Schedule'
+import { Employees } from '@/pages/Employees'
 
 export default function App() {
   return (
@@ -69,6 +70,14 @@ export default function App() {
                 }
               />
               <Route path="/schedule" element={<Schedule />} />
+              <Route
+                path="/employees"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <Employees />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
