@@ -11,6 +11,7 @@ import {
   Moon,
   SlidersHorizontal,
   Send,
+  Printer,
 } from 'lucide-react'
 import { useEmployees, type EmployeeWithRoles } from '@/lib/queries/employees'
 import { useRequirements } from '@/lib/queries/requirements'
@@ -146,12 +147,20 @@ export function Schedule() {
       </Card>
 
       {view === 'schedule' && (shifts?.length ?? 0) > 0 && (
-        <Link to={`/schedule/send/${from}`}>
-          <Button className="w-full">
-            <Send className="h-4 w-4" />
-            שלח לצוות בוואטסאפ
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to={`/schedule/send/${from}`} className="flex-1">
+            <Button className="w-full">
+              <Send className="h-4 w-4" />
+              שלח בוואטסאפ
+            </Button>
+          </Link>
+          <Link to={`/schedule/print/${from}`} className="flex-1">
+            <Button variant="secondary" className="w-full">
+              <Printer className="h-4 w-4" />
+              טבלה / PDF
+            </Button>
+          </Link>
+        </div>
       )}
 
       {view === 'availability' ? (

@@ -9,7 +9,8 @@ import {
 } from '@/lib/queries/employees'
 import type { StaffRole } from '@/types/database'
 import { STAFF_ROLES, ROLE_LABELS } from '@/lib/scheduling'
-import { toWaNumber, waLink } from '@/lib/whatsapp'
+import { toWaNumber, waLink, shareText } from '@/lib/whatsapp'
+import { Share2 } from 'lucide-react'
 import { shekelsToAgorot, agorotToShekels, formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -34,6 +35,8 @@ export function Employees() {
           עובד חדש
         </Button>
       </div>
+
+      <GroupLinkButton />
 
       {editing && (
         <EmployeeForm
@@ -92,6 +95,33 @@ export function Employees() {
         </div>
       )}
     </div>
+  )
+}
+
+function GroupLinkButton() {
+  const [status, setStatus] = useState<string | null>(null)
+  const link = `${window.location.origin}/availability`
+  const message = `היי 👋 מלאו את הזמינות שלכם לשבוע הבא (בחרו את השם שלכם):\n${link}`
+
+  async function share() {
+    const res = await shareText(message)
+    setStatus(res === 'copied' ? 'הקישור הועתק ✓' : res === 'failed' ? 'נכשל' : null)
+    setTimeout(() => setStatus(null), 2000)
+  }
+
+  return (
+    <Card className="flex items-center justify-between border-brand-900 bg-brand-950/20">
+      <div>
+        <p className="font-semibold">קישור זמינות קבוצתי</p>
+        <p className="text-sm text-neutral-400">
+          {status ?? 'קישור אחד לכל הצוות — שתף בקבוצה'}
+        </p>
+      </div>
+      <Button size="sm" onClick={share}>
+        <Share2 className="h-4 w-4" />
+        שתף
+      </Button>
+    </Card>
   )
 }
 

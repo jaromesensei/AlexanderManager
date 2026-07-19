@@ -14,7 +14,9 @@ import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
 import { SendSchedule } from '@/pages/SendSchedule'
+import { SchedulePrint } from '@/pages/SchedulePrint'
 import { AvailabilityPublic } from '@/pages/AvailabilityPublic'
+import { AvailabilityGroup } from '@/pages/AvailabilityGroup'
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/availability" element={<AvailabilityGroup />} />
             <Route path="/availability/:token" element={<AvailabilityPublic />} />
 
             <Route
@@ -95,6 +98,14 @@ export default function App() {
                 element={
                   <ProtectedRoute managerOnly>
                     <SendSchedule />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedule/print/:from"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <SchedulePrint />
                   </ProtectedRoute>
                 }
               />
