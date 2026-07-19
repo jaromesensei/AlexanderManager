@@ -45,16 +45,23 @@ export function Schedule() {
   const { data: reqs } = useRequirements()
   const [addingDate, setAddingDate] = useState<string | null>(null)
 
-  // מפת דרישות ברירת מחדל: required[shift][role] = כמות
-  const required = useMemo(() => {
-    const map: Record<ShiftType, Partial<Record<StaffRole, number>>> = {
+  // דרישות: ברירת מחדל + התאמות ליום. יום עם התאמה מחליף לגמרי את ברירת המחדל.
+  const requiredForWeekday = useMemo(() => {
+    const defaults: Record<ShiftType, Partial<Record<StaffRole, number>>> = {
       morning: {},
       evening: {},
     }
+    const overrides: Record<number, Record<ShiftType, Partial<Record<StaffRole, number>>>> =
+      {}
     for (const r of reqs ?? []) {
-      if (r.weekday == null) map[r.shift][r.role] = r.required_count
+      if (r.weekday == null) {
+        defaults[r.shift][r.role] = r.required_count
+      } else {
+        overrides[r.weekday] ??= { morning: {}, evening: {} }
+        overrides[r.weekday][r.shift][r.role] = r.required_count
+      }
     }
-    return map
+    return (weekday: number) => overrides[weekday] ?? defaults
   }, [reqs])
 
   const days = useMemo(
@@ -139,7 +146,7 @@ export function Schedule() {
                   </button>
                 </div>
 
-                <Coverage dayShifts={dayShifts} required={required} />
+                <Coverage dayShifts={dayShifts} required={requiredForWeekday(i)} />
 
                 {dayShifts.length === 0 && addingDate !== iso && (
                   <p className="text-sm text-neutral-600">אין שיבוצים</p>

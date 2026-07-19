@@ -1,9 +1,16 @@
 import type { StaffRole, ShiftType } from '@/types/database'
 
-export const STAFF_ROLES: StaffRole[] = ['waiter', 'host', 'bar', 'shift_manager']
+export const STAFF_ROLES: StaffRole[] = [
+  'waiter',
+  'piccolo',
+  'host',
+  'bar',
+  'shift_manager',
+]
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
   waiter: 'מלצר',
+  piccolo: 'פיקולו',
   host: 'מארח/ת',
   bar: 'בר',
   shift_manager: 'אחמ"ש',

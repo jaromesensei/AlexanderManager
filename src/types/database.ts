@@ -3,7 +3,7 @@
 
 export type UserRole = 'manager' | 'employee'
 export type InvoiceStatus = 'pending' | 'confirmed'
-export type StaffRole = 'waiter' | 'host' | 'bar' | 'shift_manager'
+export type StaffRole = 'waiter' | 'piccolo' | 'host' | 'bar' | 'shift_manager'
 export type ShiftType = 'morning' | 'evening'
 
 export interface Employee {
