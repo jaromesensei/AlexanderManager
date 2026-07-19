@@ -49,15 +49,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true
 
-    // טעינת סשן קיים
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!active) return
-      setSession(session)
-      if (session?.user) {
-        setProfile(await fetchProfile(session.user.id))
+    // טעינת סשן קיים - עם הגנה מפני תקיעה (timeout) וטיפול בשגיאות,
+    // כדי שמסך הטעינה לעולם לא ייתקע.
+    async function init() {
+      try {
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('auth timeout')), 8000)
+        )
+        const {
+          data: { session },
+        } = await Promise.race([supabase.auth.getSession(), timeout])
+        if (!active) return
+        setSession(session)
+        if (session?.user) {
+          setProfile(await fetchProfile(session.user.id))
+        }
+      } catch (err) {
+        console.error('טעינת ההתחברות נכשלה:', err)
+        if (active) {
+          setSession(null)
+          setProfile(null)
+        }
+      } finally {
+        if (active) setLoading(false)
       }
-      setLoading(false)
-    })
+    }
+    void init()
 
     // האזנה לשינויי התחברות
     const {
@@ -66,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return
       setSession(session)
       setProfile(session?.user ? await fetchProfile(session.user.id) : null)
+      setLoading(false)
     })
 
     return () => {
