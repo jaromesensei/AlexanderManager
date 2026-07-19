@@ -25,6 +25,28 @@ export const SHIFT_LABELS: Record<ShiftType, string> = {
 
 export const WEEKDAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 
+/** שעות התחלה אפשריות למשמרת (העבודה דינמית - אין שעת סיום). */
+export const START_TIMES = [
+  '11:00',
+  '11:30',
+  '12:00',
+  '12:30',
+  '13:00',
+  '14:00',
+  '16:00',
+  '17:00',
+  '17:30',
+  '18:00',
+  '19:00',
+  '19:30',
+]
+
+/** שעת התחלה ברירת מחדל לפי משמרת. */
+export const DEFAULT_START: Record<ShiftType, string> = {
+  morning: '11:00',
+  evening: '17:00',
+}
+
 /** תחילת השבוע (יום ראשון) עבור תאריך נתון. */
 export function startOfWeek(d: Date): Date {
   const out = new Date(d)

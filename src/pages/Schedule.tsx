@@ -32,6 +32,8 @@ import {
   STAFF_ROLES,
   ROLE_LABELS,
   shortTime,
+  START_TIMES,
+  DEFAULT_START,
 } from '@/lib/scheduling'
 import { formatDate, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -336,10 +338,8 @@ function ShiftLine({ shift }: { shift: ShiftRow }) {
             {shift.employee?.full_name ?? 'עובד'}
             <span className="mr-1.5 text-neutral-400">· {ROLE_LABELS[shift.role]}</span>
           </p>
-          {(shift.start_time || shift.end_time) && (
-            <p className="num text-xs text-neutral-400">
-              {shortTime(shift.start_time)}–{shortTime(shift.end_time)}
-            </p>
+          {shift.start_time && (
+            <p className="num text-xs text-neutral-400">משעה {shortTime(shift.start_time)}</p>
           )}
         </div>
       </div>
@@ -352,11 +352,6 @@ function ShiftLine({ shift }: { shift: ShiftRow }) {
       </button>
     </div>
   )
-}
-
-const DEFAULT_TIMES: Record<ShiftType, { start: string; end: string }> = {
-  morning: { start: '09:00', end: '17:00' },
-  evening: { start: '17:00', end: '23:00' },
 }
 
 function AddShiftForm({
@@ -375,8 +370,7 @@ function AddShiftForm({
   const [employeeId, setEmployeeId] = useState('')
   const [shift, setShift] = useState<ShiftType>('evening')
   const [role, setRole] = useState<StaffRole>('waiter')
-  const [start, setStart] = useState(DEFAULT_TIMES.evening.start)
-  const [end, setEnd] = useState(DEFAULT_TIMES.evening.end)
+  const [start, setStart] = useState(DEFAULT_START.evening)
 
   // זמינות ליום ולמשמרת הנבחרים
   const availableIds = new Set<string>()
@@ -385,8 +379,7 @@ function AddShiftForm({
     if (a.work_date === date && a.shift === shift)
       (a.available ? availableIds : unavailableIds).add(a.employee_id)
   }
-  const rank = (id: string) =>
-    availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1
+  const rank = (id: string) => (availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1)
   const sortedEmployees = [...active].sort((a, b) => rank(a.id) - rank(b.id))
   const chosenUnavailable = employeeId && unavailableIds.has(employeeId)
 
@@ -397,8 +390,7 @@ function AddShiftForm({
 
   function pickShift(s: ShiftType) {
     setShift(s)
-    setStart(DEFAULT_TIMES[s].start)
-    setEnd(DEFAULT_TIMES[s].end)
+    setStart(DEFAULT_START[s])
   }
 
   async function submit() {
@@ -409,13 +401,13 @@ function AddShiftForm({
       shift,
       role,
       start_time: start || null,
-      end_time: end || null,
+      end_time: null,
     })
     onDone()
   }
 
   return (
-    <div className="space-y-2 rounded-xl border border-brand-800 bg-neutral-900 p-3">
+    <div className="space-y-3 rounded-xl border border-brand-800 bg-neutral-900 p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">שיבוץ חדש</span>
         <button onClick={onDone} className="text-neutral-400 hover:text-neutral-100">
@@ -432,26 +424,7 @@ function AddShiftForm({
         </p>
       ) : (
         <>
-          <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-            <option value="">— בחר עובד —</option>
-            {sortedEmployees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.full_name}
-                {availableIds.has(e.id)
-                  ? ' · זמין'
-                  : unavailableIds.has(e.id)
-                    ? ' · לא זמין'
-                    : ''}
-              </option>
-            ))}
-          </Select>
-
-          {chosenUnavailable && (
-            <p className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-300">
-              ⚠️ העובד סימן שאינו זמין במשמרת זו
-            </p>
-          )}
-
+          {/* בחירת משמרת קודם - משפיעה על הזמינות */}
           <div className="flex gap-2">
             {SHIFTS.map((s) => (
               <button
@@ -468,29 +441,61 @@ function AddShiftForm({
             ))}
           </div>
 
-          <Select value={role} onChange={(e) => setRole(e.target.value as StaffRole)}>
-            {roleOptions.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABELS[r]}
-              </option>
-            ))}
-          </Select>
+          {/* עובדים - זמינים ירוקים וראשונים */}
+          <div>
+            <p className="mb-1.5 text-xs text-neutral-400">
+              בחר עובד (ירוק = זמין למשמרת זו)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sortedEmployees.map((e) => {
+                const isAvail = availableIds.has(e.id)
+                const isUnavail = unavailableIds.has(e.id)
+                const isSel = employeeId === e.id
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setEmployeeId(e.id)}
+                    className={cn(
+                      'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                      isSel
+                        ? 'bg-brand-700 text-white ring-2 ring-brand-400'
+                        : isAvail
+                          ? 'bg-green-950/60 text-green-300'
+                          : isUnavail
+                            ? 'bg-neutral-800 text-neutral-500'
+                            : 'bg-neutral-800 text-neutral-300'
+                    )}
+                  >
+                    {e.full_name}
+                    {isUnavail && ' · לא זמין'}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {chosenUnavailable && (
+            <p className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-300">
+              ⚠️ העובד סימן שאינו זמין במשמרת זו
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
-            <input
-              type="time"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              dir="ltr"
-              className="h-12 rounded-xl border border-neutral-700 bg-neutral-900 px-3 text-base text-neutral-100 focus:border-brand-500 focus:outline-none"
-            />
-            <input
-              type="time"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              dir="ltr"
-              className="h-12 rounded-xl border border-neutral-700 bg-neutral-900 px-3 text-base text-neutral-100 focus:border-brand-500 focus:outline-none"
-            />
+            <Select value={role} onChange={(e) => setRole(e.target.value as StaffRole)}>
+              {roleOptions.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABELS[r]}
+                </option>
+              ))}
+            </Select>
+            <Select value={start} onChange={(e) => setStart(e.target.value)}>
+              {START_TIMES.map((t) => (
+                <option key={t} value={t}>
+                  משעה {t}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <Button
