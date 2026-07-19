@@ -78,7 +78,9 @@ async function replaceItems(invoiceId: string, items: InvoiceItemInput[]) {
     .map((it, i) => ({ ...it, invoice_id: invoiceId, position: i }))
 
   if (rows.length > 0) {
-    const { error: insErr } = await supabase.from('invoice_items').insert(rows)
+    const { error: insErr } = await supabase
+      .from('invoice_items')
+      .insert(rows as never)
     if (insErr) throw insErr
   }
 }
@@ -90,12 +92,13 @@ export function useCreateInvoice() {
       const { items, ...header } = input
       const { data, error } = await supabase
         .from('invoices')
-        .insert(header)
+        .insert(header as never)
         .select()
         .single()
       if (error) throw error
-      await replaceItems(data.id, items)
-      return data
+      const created = data as { id: string }
+      await replaceItems(created.id, items)
+      return created
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
   })
@@ -106,7 +109,10 @@ export function useUpdateInvoice() {
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: InvoiceInput }) => {
       const { items, ...header } = input
-      const { error } = await supabase.from('invoices').update(header).eq('id', id)
+      const { error } = await supabase
+        .from('invoices')
+        .update(header as never)
+        .eq('id', id)
       if (error) throw error
       await replaceItems(id, items)
       return { id }

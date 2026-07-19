@@ -22,9 +22,10 @@ export function useCreateSupplier() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: { name: string; phone?: string; notes?: string }) => {
+      // as never: טיפוסי ה-insert של supabase-js קפדניים מול Database ידני
       const { data, error } = await supabase
         .from('suppliers')
-        .insert(input)
+        .insert(input as never)
         .select()
         .single()
       if (error) throw error
@@ -40,7 +41,7 @@ export function useUpdateSupplier() {
     mutationFn: async ({ id, ...input }: Partial<Supplier> & { id: string }) => {
       const { data, error } = await supabase
         .from('suppliers')
-        .update(input)
+        .update(input as never)
         .eq('id', id)
         .select()
         .single()
