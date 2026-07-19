@@ -1,7 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ChevronLeft, Plus, Trash2, X, Users, Sun, Moon } from 'lucide-react'
+import {
+  ChevronRight,
+  ChevronLeft,
+  Plus,
+  Trash2,
+  X,
+  Users,
+  Sun,
+  Moon,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
+import { useRequirements } from '@/lib/queries/requirements'
 import {
   useShifts,
   useCreateShift,
@@ -31,7 +42,20 @@ export function Schedule() {
   const from = toISODate(weekStart)
   const to = toISODate(addDays(weekStart, 6))
   const { data: shifts, isLoading } = useShifts(from, to)
+  const { data: reqs } = useRequirements()
   const [addingDate, setAddingDate] = useState<string | null>(null)
+
+  // מפת דרישות ברירת מחדל: required[shift][role] = כמות
+  const required = useMemo(() => {
+    const map: Record<ShiftType, Partial<Record<StaffRole, number>>> = {
+      morning: {},
+      evening: {},
+    }
+    for (const r of reqs ?? []) {
+      if (r.weekday == null) map[r.shift][r.role] = r.required_count
+    }
+    return map
+  }, [reqs])
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -48,12 +72,20 @@ export function Schedule() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">סידור עבודה</h1>
-        <Link to="/employees">
-          <Button size="sm" variant="secondary">
-            <Users className="h-4 w-4" />
-            עובדים
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/requirements">
+            <Button size="sm" variant="secondary">
+              <SlidersHorizontal className="h-4 w-4" />
+              איוש
+            </Button>
+          </Link>
+          <Link to="/employees">
+            <Button size="sm" variant="secondary">
+              <Users className="h-4 w-4" />
+              עובדים
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* ניווט שבוע */}
@@ -107,6 +139,8 @@ export function Schedule() {
                   </button>
                 </div>
 
+                <Coverage dayShifts={dayShifts} required={required} />
+
                 {dayShifts.length === 0 && addingDate !== iso && (
                   <p className="text-sm text-neutral-600">אין שיבוצים</p>
                 )}
@@ -123,6 +157,61 @@ export function Schedule() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function Coverage({
+  dayShifts,
+  required,
+}: {
+  dayShifts: ShiftRow[]
+  required: Record<ShiftType, Partial<Record<StaffRole, number>>>
+}) {
+  const rows = SHIFTS.map((shift) => {
+    const assigned: Partial<Record<StaffRole, number>> = {}
+    for (const s of dayShifts)
+      if (s.shift === shift) assigned[s.role] = (assigned[s.role] ?? 0) + 1
+    const roles = STAFF_ROLES.map((role) => ({
+      role,
+      have: assigned[role] ?? 0,
+      need: required[shift][role] ?? 0,
+    })).filter((r) => r.need > 0 || r.have > 0)
+    return { shift, roles }
+  }).filter((r) => r.roles.length > 0)
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="space-y-1.5">
+      {rows.map(({ shift, roles }) => (
+        <div key={shift} className="flex flex-wrap items-center gap-1.5">
+          {shift === 'morning' ? (
+            <Sun className="h-3.5 w-3.5 text-amber-400" />
+          ) : (
+            <Moon className="h-3.5 w-3.5 text-indigo-400" />
+          )}
+          {roles.map(({ role, have, need }) => {
+            const short = have < need
+            return (
+              <span
+                key={role}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-xs num',
+                  short
+                    ? 'bg-red-950/60 text-red-300'
+                    : need > 0
+                      ? 'bg-green-950/50 text-green-300'
+                      : 'bg-neutral-800 text-neutral-400'
+                )}
+              >
+                {ROLE_LABELS[role]} {have}
+                {need > 0 && `/${need}`}
+              </span>
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
 }

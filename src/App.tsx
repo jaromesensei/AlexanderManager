@@ -12,6 +12,7 @@ import { InvoiceDetail } from '@/pages/InvoiceDetail'
 import { Suppliers } from '@/pages/Suppliers'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
+import { Requirements } from '@/pages/Requirements'
 
 export default function App() {
   return (
@@ -75,6 +76,14 @@ export default function App() {
                 element={
                   <ProtectedRoute managerOnly>
                     <Employees />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/requirements"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <Requirements />
                   </ProtectedRoute>
                 }
               />
