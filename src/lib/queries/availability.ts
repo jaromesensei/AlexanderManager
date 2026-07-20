@@ -83,6 +83,45 @@ export interface WeekAvailRow {
   available: boolean
 }
 
+const LOCKS_KEY = 'availability_locks'
+
+/** האם השבוע נעול (מספר נעילות). */
+export function useWeekLockCount(from: string) {
+  return useQuery({
+    queryKey: [LOCKS_KEY, from],
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('availability_locks')
+        .select('employee_id')
+        .eq('week_start', from)
+      if (error) throw error
+      return (data ?? []).length
+    },
+  })
+}
+
+/** נעילת הזמינות לשבוע לכל העובדים. צד מנהל. */
+export function useLockWeek() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      weekStart,
+      employeeIds,
+    }: {
+      weekStart: string
+      employeeIds: string[]
+    }) => {
+      if (!employeeIds.length) return
+      const rows = employeeIds.map((id) => ({ employee_id: id, week_start: weekStart }))
+      const { error } = await supabase
+        .from('availability_locks')
+        .upsert(rows as never, { onConflict: 'employee_id,week_start', ignoreDuplicates: true })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [LOCKS_KEY] }),
+  })
+}
+
 /** פתיחת נעילת הזמינות לשבוע (מאפשר לעובדים לשלוח שוב). צד מנהל. */
 export function useUnlockWeek() {
   const qc = useQueryClient()
@@ -94,7 +133,7 @@ export function useUnlockWeek() {
         .eq('week_start', weekStart)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shift_availability'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [LOCKS_KEY] }),
   })
 }
 

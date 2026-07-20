@@ -18,6 +18,8 @@ import { useRequirements } from '@/lib/queries/requirements'
 import {
   useWeekAvailability,
   useUnlockWeek,
+  useLockWeek,
+  useWeekLockCount,
   type WeekAvailRow,
 } from '@/lib/queries/availability'
 import {
@@ -214,31 +216,55 @@ function AvailabilityBoard({
 }: {
   days: Date[]
   weekAvail: WeekAvailRow[]
-  employees: { id: string; full_name: string }[]
+  employees: EmployeeWithRoles[]
   weekStart: string
 }) {
   const nameById: Record<string, string> = {}
   for (const e of employees) nameById[e.id] = e.full_name
+  const lock = useLockWeek()
   const unlock = useUnlockWeek()
-  const [unlocked, setUnlocked] = useState(false)
+  const { data: lockCount } = useWeekLockCount(weekStart)
+  const isLocked = (lockCount ?? 0) > 0
 
-  async function doUnlock() {
-    if (!confirm('לפתוח לעובדים לערוך מחדש את הזמינות לשבוע זה?')) return
-    await unlock.mutateAsync(weekStart)
-    setUnlocked(true)
-    setTimeout(() => setUnlocked(false), 2500)
+  async function doLock() {
+    const ids = employees.filter((e) => e.active).map((e) => e.id)
+    await lock.mutateAsync({ weekStart, employeeIds: ids })
   }
+  async function doUnlock() {
+    await unlock.mutateAsync(weekStart)
+  }
+
+  // מי טרם שלח זמינות לשבוע זה
+  const submittedIds = new Set(weekAvail.map((a) => a.employee_id))
+  const missing = employees.filter((e) => e.active && !submittedIds.has(e.id))
 
   return (
     <div className="space-y-3">
-      <Button
-        variant="secondary"
-        onClick={doUnlock}
-        loading={unlock.isPending}
-        className="w-full"
-      >
-        {unlocked ? 'נפתח לעריכה ✓' : '🔓 פתח זמינות לעובדים (השבוע הזה)'}
-      </Button>
+      {isLocked ? (
+        <Button
+          variant="secondary"
+          onClick={doUnlock}
+          loading={unlock.isPending}
+          className="w-full"
+        >
+          🔓 פתח זמינות לעריכה
+        </Button>
+      ) : (
+        <Button onClick={doLock} loading={lock.isPending} className="w-full">
+          🔒 נעל זמינות (מתחילים לבנות)
+        </Button>
+      )}
+
+      {missing.length > 0 && (
+        <div className="rounded-xl border border-amber-800/50 bg-amber-950/20 p-3">
+          <p className="text-sm font-medium text-amber-200">
+            טרם שלחו זמינות ({missing.length}):
+          </p>
+          <p className="mt-1 text-sm text-amber-400/80">
+            {missing.map((e) => e.full_name).join(' · ')}
+          </p>
+        </div>
+      )}
       {days.map((day, i) => {
         const iso = toISODate(day)
         return (

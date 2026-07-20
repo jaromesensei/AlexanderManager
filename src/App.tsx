@@ -27,6 +27,14 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/availability" element={<AvailabilityGroup />} />
             <Route path="/availability/:token" element={<AvailabilityPublic />} />
+            <Route
+              path="/schedule/print/:from"
+              element={
+                <ProtectedRoute managerOnly>
+                  <SchedulePrint />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               element={
@@ -98,14 +106,6 @@ export default function App() {
                 element={
                   <ProtectedRoute managerOnly>
                     <SendSchedule />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/schedule/print/:from"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <SchedulePrint />
                   </ProtectedRoute>
                 }
               />

@@ -2,15 +2,16 @@ import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, Printer } from 'lucide-react'
 import { useShifts, type ShiftRow } from '@/lib/queries/shifts'
-import { useEmployees } from '@/lib/queries/employees'
 import {
   addDays,
   toISODate,
   WEEKDAY_NAMES,
   ROLE_LABELS,
   SHIFT_LABELS,
+  SHIFTS,
   shortTime,
 } from '@/lib/scheduling'
+import type { ShiftType } from '@/types/database'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
 
 function dm(iso: string): string {
@@ -23,40 +24,33 @@ export function SchedulePrint() {
   const start = new Date(from + 'T00:00:00')
   const to = toISODate(addDays(start, 6))
   const { data: shifts, isLoading } = useShifts(from, to)
-  const { data: employees } = useEmployees()
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(start, i)),
     [from]
   )
 
+  // grid[iso][shift] = שיבוצים ממויינים
   const grid = useMemo(() => {
-    // map[empId][iso] = shifts
     const m: Record<string, Record<string, ShiftRow[]>> = {}
     for (const s of shifts ?? []) {
-      ;(m[s.employee_id] ??= {})[s.work_date] ??= []
-      m[s.employee_id][s.work_date].push(s)
+      ;((m[s.work_date] ??= {})[s.shift] ??= []).push(s)
     }
-    for (const emp in m)
-      for (const d in m[emp])
-        m[emp][d].sort((a, b) =>
-          a.shift === b.shift ? 0 : a.shift === 'morning' ? -1 : 1
-        )
+    for (const d in m)
+      for (const sh in m[d])
+        m[d][sh].sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''))
     return m
   }, [shifts])
-
-  const rows = useMemo(() => {
-    return (employees ?? [])
-      .filter((e) => grid[e.id])
-      .map((e) => ({ id: e.id, name: e.full_name }))
-  }, [employees, grid])
 
   if (isLoading) return <FullScreenSpinner />
 
   return (
     <div className="min-h-screen bg-white p-4 text-neutral-900" dir="rtl">
       <style>{`@page { size: A4 landscape; margin: 8mm; }
-        @media print { .no-print { display: none !important; } }`}</style>
+        @media print {
+          .no-print { display: none !important; }
+          html, body { background: #fff !important; }
+        }`}</style>
 
       <div className="no-print mb-4 flex items-center justify-between">
         <Link to="/schedule" className="text-neutral-500">
@@ -71,28 +65,24 @@ export function SchedulePrint() {
         </button>
       </div>
 
-      <h1 className="mb-1 text-center text-xl font-bold">
-        סידור עבודה · אלכסנדר
-      </h1>
+      <h1 className="mb-1 text-center text-xl font-bold">סידור עבודה · אלכסנדר</h1>
       <p className="mb-4 text-center text-sm text-neutral-600">
         {dm(from)} – {dm(to)}
       </p>
 
-      {rows.length === 0 ? (
+      {(shifts?.length ?? 0) === 0 ? (
         <p className="text-center text-neutral-500">אין שיבוצים בשבוע זה.</p>
       ) : (
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full table-fixed border-collapse text-sm">
           <thead>
             <tr>
-              <th className="border border-neutral-300 bg-neutral-100 p-2 text-right">
-                עובד
-              </th>
+              <th className="w-16 border border-neutral-400 bg-neutral-100 p-2"></th>
               {days.map((d, i) => (
                 <th
                   key={i}
-                  className="border border-neutral-300 bg-neutral-100 p-2 text-center"
+                  className="border border-neutral-400 bg-neutral-100 p-1.5 text-center"
                 >
-                  <div>{WEEKDAY_NAMES[i]}</div>
+                  <div className="font-bold">{WEEKDAY_NAMES[i]}</div>
                   <div className="text-xs font-normal text-neutral-500">
                     {dm(toISODate(d))}
                   </div>
@@ -101,25 +91,25 @@ export function SchedulePrint() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="border border-neutral-300 p-2 font-medium">{r.name}</td>
+            {SHIFTS.map((shift: ShiftType) => (
+              <tr key={shift}>
+                <td className="border border-neutral-400 bg-neutral-50 p-1.5 text-center font-bold">
+                  {SHIFT_LABELS[shift]}
+                </td>
                 {days.map((d, i) => {
-                  const iso = toISODate(d)
-                  const cell = grid[r.id]?.[iso] ?? []
+                  const cell = grid[toISODate(d)]?.[shift] ?? []
                   return (
                     <td
                       key={i}
-                      className="border border-neutral-300 p-2 text-center align-top"
+                      className="border border-neutral-400 p-1.5 align-top text-xs leading-relaxed"
                     >
                       {cell.map((s) => (
-                        <div key={s.id} className="whitespace-nowrap">
-                          {SHIFT_LABELS[s.shift]}
-                          {s.start_time ? ` ${shortTime(s.start_time)}` : ''}
-                          <span className="text-xs text-neutral-500">
-                            {' '}
-                            {ROLE_LABELS[s.role]}
-                          </span>
+                        <div key={s.id}>
+                          {s.employee?.full_name}{' '}
+                          <span className="text-neutral-500">({ROLE_LABELS[s.role]})</span>
+                          {s.start_time && (
+                            <span className="text-neutral-600"> {shortTime(s.start_time)}</span>
+                          )}
                         </div>
                       ))}
                     </td>
