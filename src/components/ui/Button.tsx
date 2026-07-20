@@ -13,8 +13,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-700 text-white hover:bg-brand-600 active:bg-brand-800',
-  secondary:
-    'bg-neutral-800 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-900',
+  secondary: 'bg-neutral-800 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-900',
   ghost: 'bg-transparent text-neutral-200 hover:bg-neutral-800',
   danger: 'bg-red-600 text-white hover:bg-red-500 active:bg-red-700',
 }
@@ -27,7 +26,15 @@ const sizes: Record<Size, string> = {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant = 'primary', size = 'md', loading, disabled, children, ...props },
+    {
+      className,
+      variant = 'primary',
+      size = 'md',
+      loading,
+      disabled,
+      children,
+      ...props
+    },
     ref
   ) => {
     return (

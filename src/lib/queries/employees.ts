@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toastBus } from '@/lib/toastBus'
 import type { Employee, StaffRole } from '@/types/database'
 
 const KEY = ['employees']
@@ -38,9 +39,7 @@ async function replaceRoles(employeeId: string, roles: StaffRole[]) {
   if (delErr) throw delErr
   if (roles.length > 0) {
     const rows = roles.map((role) => ({ employee_id: employeeId, role }))
-    const { error: insErr } = await supabase
-      .from('employee_roles')
-      .insert(rows as never)
+    const { error: insErr } = await supabase.from('employee_roles').insert(rows as never)
     if (insErr) throw insErr
   }
 }
@@ -69,7 +68,10 @@ export function useSaveEmployee() {
       await replaceRoles(empId!, roles)
       return { id: empId! }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'העובד נשמר')
+    },
   })
 }
 
@@ -80,6 +82,9 @@ export function useDeleteEmployee() {
       const { error } = await supabase.from('employees').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'העובד נמחק')
+    },
   })
 }

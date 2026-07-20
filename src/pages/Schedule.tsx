@@ -64,8 +64,10 @@ export function Schedule() {
       morning: {},
       evening: {},
     }
-    const overrides: Record<number, Record<ShiftType, Partial<Record<StaffRole, number>>>> =
-      {}
+    const overrides: Record<
+      number,
+      Record<ShiftType, Partial<Record<StaffRole, number>>>
+    > = {}
     for (const r of reqs ?? []) {
       if (r.weekday == null) {
         defaults[r.shift][r.role] = r.required_count
@@ -347,7 +349,8 @@ function ShiftSection({
       (a.available ? availableIds : unavailableIds).add(a.employee_id)
 
   const assignedIds = new Set(assignments.map((a) => a.employee_id))
-  const rankOf = (id: string) => (availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1)
+  const rankOf = (id: string) =>
+    availableIds.has(id) ? 0 : unavailableIds.has(id) ? 2 : 1
   const pickable = [...active].sort((a, b) => rankOf(a.id) - rankOf(b.id))
 
   // כיסוי
@@ -361,7 +364,8 @@ function ShiftSection({
 
   // כפילות: אותו עובד יותר מפעם אחת במשמרת זו
   const dupCount: Record<string, number> = {}
-  for (const a of assignments) dupCount[a.employee_id] = (dupCount[a.employee_id] ?? 0) + 1
+  for (const a of assignments)
+    dupCount[a.employee_id] = (dupCount[a.employee_id] ?? 0) + 1
   const hasDup = Object.values(dupCount).some((n) => n > 1)
 
   function toggle(emp: EmployeeWithRoles) {
@@ -413,9 +417,7 @@ function ShiftSection({
         </div>
       </div>
 
-      {hasDup && (
-        <p className="text-xs text-red-400">⚠️ עובד משובץ פעמיים במשמרת זו</p>
-      )}
+      {hasDup && <p className="text-xs text-red-400">⚠️ עובד משובץ פעמיים במשמרת זו</p>}
 
       {/* משובצים */}
       {assignments.map((a) => {
@@ -432,7 +434,10 @@ function ShiftSection({
               <select
                 value={a.role}
                 onChange={(e) =>
-                  update.mutate({ id: a.id, patch: { role: e.target.value as StaffRole } })
+                  update.mutate({
+                    id: a.id,
+                    patch: { role: e.target.value as StaffRole },
+                  })
                 }
                 className={SMALL_SELECT}
               >
@@ -447,7 +452,9 @@ function ShiftSection({
             )}
             <select
               value={shortTime(a.start_time)}
-              onChange={(e) => update.mutate({ id: a.id, patch: { start_time: e.target.value } })}
+              onChange={(e) =>
+                update.mutate({ id: a.id, patch: { start_time: e.target.value } })
+              }
               className={cn(SMALL_SELECT, 'num')}
               dir="ltr"
             >

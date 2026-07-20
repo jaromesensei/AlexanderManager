@@ -54,7 +54,8 @@ export function AvailabilityWeek({
         setName(data.full_name)
         setLocked(data.locked)
         const map: Record<string, boolean> = {}
-        for (const a of data.availability) map[cellKey(a.work_date, a.shift)] = a.available
+        for (const a of data.availability)
+          map[cellKey(a.work_date, a.shift)] = a.available
         setAvail(map)
       })
       .catch(() => active && setError(invalidMsg))
@@ -166,7 +167,9 @@ export function AvailabilityWeek({
                       disabled={locked}
                       className={cn(
                         'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
-                        on ? 'bg-green-700 text-white' : 'bg-neutral-800 text-neutral-400',
+                        on
+                          ? 'bg-green-700 text-white'
+                          : 'bg-neutral-800 text-neutral-400',
                         locked && 'opacity-60'
                       )}
                     >
@@ -188,7 +191,13 @@ export function AvailabilityWeek({
       {error && <p className="mt-3 text-center text-sm text-red-400">{error}</p>}
 
       <div className="sticky bottom-4 mt-4">
-        <Button onClick={submit} loading={saving} disabled={locked} size="lg" className="w-full">
+        <Button
+          onClick={submit}
+          loading={saving}
+          disabled={locked}
+          size="lg"
+          className="w-full"
+        >
           {locked ? (
             <>
               <Check className="h-5 w-5" /> נשלח ונעול 🔒

@@ -36,9 +36,7 @@ export function InvoiceDetail() {
           <Link to="/invoices" className="text-neutral-400 hover:text-neutral-100">
             <ArrowRight className="h-5 w-5" />
           </Link>
-          <h1 className="text-xl font-bold">
-            {invoice.supplier?.name ?? 'חשבונית'}
-          </h1>
+          <h1 className="text-xl font-bold">{invoice.supplier?.name ?? 'חשבונית'}</h1>
           {invoice.status === 'pending' && (
             <span className="rounded-full bg-amber-950 px-2 py-0.5 text-xs text-amber-400">
               טיוטה
@@ -58,12 +56,21 @@ export function InvoiceDetail() {
       </div>
 
       <Card className="space-y-1 text-sm">
-        <Row label="ספק" value={invoice.supplier?.name ?? '—'} icon={<Store className="h-4 w-4" />} />
-        <Row label="תאריך" value={invoice.invoice_date ? formatDate(invoice.invoice_date) : '—'} />
+        <Row
+          label="ספק"
+          value={invoice.supplier?.name ?? '—'}
+          icon={<Store className="h-4 w-4" />}
+        />
+        <Row
+          label="תאריך"
+          value={invoice.invoice_date ? formatDate(invoice.invoice_date) : '—'}
+        />
         <Row label="מספר" value={invoice.invoice_number ?? '—'} />
         <Row
           label='סה"כ'
-          value={invoice.total_amount != null ? formatCurrency(invoice.total_amount) : '—'}
+          value={
+            invoice.total_amount != null ? formatCurrency(invoice.total_amount) : '—'
+          }
           bold
         />
       </Card>

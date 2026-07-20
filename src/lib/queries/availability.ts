@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toastBus } from '@/lib/toastBus'
 import type { ShiftType } from '@/types/database'
 
 export interface AvailEntry {
@@ -20,10 +21,11 @@ export async function getAvailability(
   from: string,
   to: string
 ): Promise<AvailData> {
-  const { data, error } = await supabase.rpc(
-    'avail_get',
-    { p_token: token, p_from: from, p_to: to } as never
-  )
+  const { data, error } = await supabase.rpc('avail_get', {
+    p_token: token,
+    p_from: from,
+    p_to: to,
+  } as never)
   if (error) throw error
   return data as unknown as AvailData
 }
@@ -33,10 +35,10 @@ export async function submitAvailability(
   token: string,
   entries: AvailEntry[]
 ): Promise<void> {
-  const { error } = await supabase.rpc(
-    'avail_submit',
-    { p_token: token, p_entries: entries } as never
-  )
+  const { error } = await supabase.rpc('avail_submit', {
+    p_token: token,
+    p_entries: entries,
+  } as never)
   if (error) throw error
 }
 
@@ -57,10 +59,11 @@ export async function getAvailabilityNamed(
   from: string,
   to: string
 ): Promise<AvailData> {
-  const { data, error } = await supabase.rpc(
-    'avail_get_named',
-    { p_id: id, p_from: from, p_to: to } as never
-  )
+  const { data, error } = await supabase.rpc('avail_get_named', {
+    p_id: id,
+    p_from: from,
+    p_to: to,
+  } as never)
   if (error) throw error
   return data as unknown as AvailData
 }
@@ -69,10 +72,10 @@ export async function submitAvailabilityNamed(
   id: string,
   entries: AvailEntry[]
 ): Promise<void> {
-  const { error } = await supabase.rpc(
-    'avail_submit_named',
-    { p_id: id, p_entries: entries } as never
-  )
+  const { error } = await supabase.rpc('avail_submit_named', {
+    p_id: id,
+    p_entries: entries,
+  } as never)
   if (error) throw error
 }
 
@@ -113,12 +116,16 @@ export function useLockWeek() {
     }) => {
       if (!employeeIds.length) return
       const rows = employeeIds.map((id) => ({ employee_id: id, week_start: weekStart }))
-      const { error } = await supabase
-        .from('availability_locks')
-        .upsert(rows as never, { onConflict: 'employee_id,week_start', ignoreDuplicates: true })
+      const { error } = await supabase.from('availability_locks').upsert(rows as never, {
+        onConflict: 'employee_id,week_start',
+        ignoreDuplicates: true,
+      })
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [LOCKS_KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [LOCKS_KEY] })
+      toastBus('success', 'הזמינות ננעלה לשבוע')
+    },
   })
 }
 
@@ -133,7 +140,10 @@ export function useUnlockWeek() {
         .eq('week_start', weekStart)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [LOCKS_KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [LOCKS_KEY] })
+      toastBus('success', 'הזמינות נפתחה מחדש')
+    },
   })
 }
 

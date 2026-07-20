@@ -57,9 +57,7 @@ export function SendSchedule() {
       }
       const icon = s.shift === 'morning' ? '☀️' : '🌙'
       const time = s.start_time ? ` משעה ${shortTime(s.start_time)}` : ''
-      lines.push(
-        `${icon} ${s.employee?.full_name ?? ''} (${ROLE_LABELS[s.role]})${time}`
-      )
+      lines.push(`${icon} ${s.employee?.full_name ?? ''} (${ROLE_LABELS[s.role]})${time}`)
     }
     return lines.join('\n').trim()
   }, [shifts, from, to])
@@ -128,7 +126,9 @@ export function SendSchedule() {
                       </Button>
                     </a>
                   ) : (
-                    <span className="self-center text-xs text-neutral-500">אין טלפון</span>
+                    <span className="self-center text-xs text-neutral-500">
+                      אין טלפון
+                    </span>
                   )}
                 </div>
               </Card>

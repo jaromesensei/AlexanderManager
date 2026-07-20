@@ -78,8 +78,10 @@ function ManagerDashboard() {
       morning: {},
       evening: {},
     }
-    const overrides: Record<number, Record<ShiftType, Partial<Record<StaffRole, number>>>> =
-      {}
+    const overrides: Record<
+      number,
+      Record<ShiftType, Partial<Record<StaffRole, number>>>
+    > = {}
     for (const r of reqs) {
       if (r.weekday == null) defaults[r.shift][r.role] = r.required_count
       else {

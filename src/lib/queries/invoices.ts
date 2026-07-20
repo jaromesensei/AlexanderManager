@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toastBus } from '@/lib/toastBus'
 import type { Invoice, InvoiceItem, InvoiceStatus, Supplier } from '@/types/database'
 import { ALERTS_KEY } from './alerts'
 
 /** מפעיל עיבוד מחירים + התראות בצד השרת (רק לחשבונית מאושרת). */
 async function processPrices(invoiceId: string) {
-  const { error } = await supabase.rpc(
-    'process_invoice_prices',
-    { p_invoice_id: invoiceId } as never
-  )
+  const { error } = await supabase.rpc('process_invoice_prices', {
+    p_invoice_id: invoiceId,
+  } as never)
   if (error) throw error
 }
 
@@ -88,9 +88,7 @@ async function replaceItems(invoiceId: string, items: InvoiceItemInput[]) {
     .map((it, i) => ({ ...it, invoice_id: invoiceId, position: i }))
 
   if (rows.length > 0) {
-    const { error: insErr } = await supabase
-      .from('invoice_items')
-      .insert(rows as never)
+    const { error: insErr } = await supabase.from('invoice_items').insert(rows as never)
     if (insErr) throw insErr
   }
 }
@@ -114,6 +112,7 @@ export function useCreateInvoice() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: LIST_KEY })
       qc.invalidateQueries({ queryKey: ALERTS_KEY })
+      toastBus('success', 'החשבונית נשמרה')
     },
   })
 }
@@ -136,6 +135,7 @@ export function useUpdateInvoice() {
       qc.invalidateQueries({ queryKey: LIST_KEY })
       qc.invalidateQueries({ queryKey: detailKey(id) })
       qc.invalidateQueries({ queryKey: ALERTS_KEY })
+      toastBus('success', 'החשבונית עודכנה')
     },
   })
 }
@@ -147,6 +147,9 @@ export function useDeleteInvoice() {
       const { error } = await supabase.from('invoices').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LIST_KEY })
+      toastBus('success', 'החשבונית נמחקה')
+    },
   })
 }

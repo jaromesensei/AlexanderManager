@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toastBus } from '@/lib/toastBus'
 import type { Supplier } from '@/types/database'
 
 const KEY = ['suppliers']
@@ -8,10 +9,7 @@ export function useSuppliers() {
   return useQuery({
     queryKey: KEY,
     queryFn: async (): Promise<Supplier[]> => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .order('name')
+      const { data, error } = await supabase.from('suppliers').select('*').order('name')
       if (error) throw error
       return data ?? []
     },
@@ -31,7 +29,10 @@ export function useCreateSupplier() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'הספק נשמר')
+    },
   })
 }
 
@@ -48,7 +49,10 @@ export function useUpdateSupplier() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'הספק עודכן')
+    },
   })
 }
 
@@ -59,6 +63,9 @@ export function useDeleteSupplier() {
       const { error } = await supabase.from('suppliers').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'הספק נמחק')
+    },
   })
 }

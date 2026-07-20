@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toastBus } from '@/lib/toastBus'
 import type { StaffingRequirement, StaffRole, ShiftType } from '@/types/database'
 
 const KEY = ['staffing_requirements']
@@ -35,7 +36,9 @@ export function useSaveRequirements() {
     }) => {
       const base = supabase.from('staffing_requirements').delete()
       const { error: delErr } =
-        weekday == null ? await base.is('weekday', null) : await base.eq('weekday', weekday)
+        weekday == null
+          ? await base.is('weekday', null)
+          : await base.eq('weekday', weekday)
       if (delErr) throw delErr
 
       const rows = entries
@@ -48,7 +51,10 @@ export function useSaveRequirements() {
         if (error) throw error
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'דרישות האיוש נשמרו')
+    },
   })
 }
 
@@ -63,6 +69,9 @@ export function useClearDayRequirements() {
         .eq('weekday', weekday)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'היום אופס לברירת מחדל')
+    },
   })
 }

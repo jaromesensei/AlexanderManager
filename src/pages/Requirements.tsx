@@ -27,7 +27,7 @@ type Scope = number | null
 function countsForScope(reqs: StaffingRequirement[], scope: Scope) {
   const map: Record<string, number> = {}
   for (const r of reqs) {
-    if ((scope == null ? r.weekday == null : r.weekday === scope))
+    if (scope == null ? r.weekday == null : r.weekday === scope)
       map[cellKey(r.shift, r.role)] = r.required_count
   }
   return map
@@ -90,13 +90,17 @@ export function Requirements() {
       </div>
 
       <p className="text-sm text-neutral-400">
-        כמה עובדים צריך מכל תפקיד בכל משמרת. בחר "ברירת מחדל" לכל השבוע, או יום מסוים
-        כדי להתאים אותו (למשל שישי).
+        כמה עובדים צריך מכל תפקיד בכל משמרת. בחר "ברירת מחדל" לכל השבוע, או יום מסוים כדי
+        להתאים אותו (למשל שישי).
       </p>
 
       {/* בורר סקופ: ברירת מחדל + ימים */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        <ScopeChip active={scope == null} onClick={() => setScope(null)} label="ברירת מחדל" />
+        <ScopeChip
+          active={scope == null}
+          onClick={() => setScope(null)}
+          label="ברירת מחדל"
+        />
         {WEEKDAY_NAMES.map((name, i) => (
           <ScopeChip
             key={i}
@@ -110,7 +114,8 @@ export function Requirements() {
 
       {scope != null && !isCustomDay && (
         <p className="rounded-lg bg-neutral-800/50 px-3 py-2 text-sm text-neutral-400">
-          יום {WEEKDAY_NAMES[scope]} יורש כרגע מברירת המחדל. שנה מספרים ושמור כדי להתאים אותו.
+          יום {WEEKDAY_NAMES[scope]} יורש כרגע מברירת המחדל. שנה מספרים ושמור כדי להתאים
+          אותו.
         </p>
       )}
 

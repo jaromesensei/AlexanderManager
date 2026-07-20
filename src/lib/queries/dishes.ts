@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toastBus } from '@/lib/toastBus'
 import type { Dish, RecipeItem } from '@/types/database'
 
 export interface RecipeItemRow extends RecipeItem {
@@ -61,7 +62,10 @@ export function useSaveDish() {
       const { items, ...fields } = input
       let dishId = id
       if (dishId) {
-        const { error } = await supabase.from('dishes').update(fields as never).eq('id', dishId)
+        const { error } = await supabase
+          .from('dishes')
+          .update(fields as never)
+          .eq('id', dishId)
         if (error) throw error
       } else {
         const { data, error } = await supabase
@@ -75,7 +79,10 @@ export function useSaveDish() {
       await replaceRecipe(dishId!, items)
       return { id: dishId! }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'המנה נשמרה')
+    },
   })
 }
 
@@ -86,6 +93,9 @@ export function useDeleteDish() {
       const { error } = await supabase.from('dishes').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      toastBus('success', 'המנה נמחקה')
+    },
   })
 }

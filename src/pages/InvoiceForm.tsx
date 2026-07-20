@@ -13,12 +13,7 @@ import {
   getInvoiceImageUrl,
   extractInvoice,
 } from '@/lib/queries/storage'
-import {
-  cn,
-  formatCurrency,
-  shekelsToAgorot,
-  agorotToShekels,
-} from '@/lib/utils'
+import { cn, formatCurrency, shekelsToAgorot, agorotToShekels } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -212,7 +207,9 @@ export function InvoiceForm() {
         >
           <ArrowRight className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold">{isEdit ? 'עריכת חשבונית' : 'חשבונית חדשה'}</h1>
+        <h1 className="text-2xl font-bold">
+          {isEdit ? 'עריכת חשבונית' : 'חשבונית חדשה'}
+        </h1>
       </div>
 
       {/* תמונת החשבונית */}

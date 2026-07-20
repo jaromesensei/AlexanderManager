@@ -9,12 +9,7 @@ import {
 } from '@/lib/queries/dishes'
 import { useProducts, useLatestPrices, costPerBase } from '@/lib/queries/products'
 import type { Product } from '@/types/database'
-import {
-  formatCurrency,
-  shekelsToAgorot,
-  agorotToShekels,
-  cn,
-} from '@/lib/utils'
+import { formatCurrency, shekelsToAgorot, agorotToShekels, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -154,9 +149,10 @@ function DishForm({
     dish?.menu_price != null ? String(agorotToShekels(dish.menu_price)) : ''
   )
   const [items, setItems] = useState<ItemRow[]>(
-    dish?.items.map((it) => ({ product_id: it.product_id, quantity: String(it.quantity) })) ?? [
-      { product_id: '', quantity: '' },
-    ]
+    dish?.items.map((it) => ({
+      product_id: it.product_id,
+      quantity: String(it.quantity),
+    })) ?? [{ product_id: '', quantity: '' }]
   )
   const [error, setError] = useState<string | null>(null)
 
@@ -269,7 +265,9 @@ function DishForm({
           )
         })}
         {/* אזהרה על מרכיב בלי עלות */}
-        {items.some((r) => r.product_id && parseFloat(r.quantity) > 0 && rowCost(r) == null) && (
+        {items.some(
+          (r) => r.product_id && parseFloat(r.quantity) > 0 && rowCost(r) == null
+        ) && (
           <p className="text-xs text-amber-400">
             למרכיב חסר מחיר או יחידת בסיס — הגדר במסך "מוצרים".
           </p>
@@ -292,7 +290,9 @@ function DishForm({
         </div>
         {pct != null && (
           <div className="text-left">
-            <p className={cn('text-2xl font-bold num', fcColor(pct))}>{pct.toFixed(0)}%</p>
+            <p className={cn('text-2xl font-bold num', fcColor(pct))}>
+              {pct.toFixed(0)}%
+            </p>
             <p className="text-xs text-neutral-500">פוד קוסט</p>
           </div>
         )}
@@ -303,7 +303,12 @@ function DishForm({
       )}
 
       <div className="flex gap-2">
-        <Button onClick={submit} loading={save.isPending} disabled={!name.trim()} className="flex-1">
+        <Button
+          onClick={submit}
+          loading={save.isPending}
+          disabled={!name.trim()}
+          className="flex-1"
+        >
           שמירה
         </Button>
         {dish && (

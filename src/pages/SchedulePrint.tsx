@@ -106,9 +106,14 @@ export function SchedulePrint() {
                       {cell.map((s) => (
                         <div key={s.id}>
                           {s.employee?.full_name}{' '}
-                          <span className="text-neutral-500">({ROLE_LABELS[s.role]})</span>
+                          <span className="text-neutral-500">
+                            ({ROLE_LABELS[s.role]})
+                          </span>
                           {s.start_time && (
-                            <span className="text-neutral-600"> {shortTime(s.start_time)}</span>
+                            <span className="text-neutral-600">
+                              {' '}
+                              {shortTime(s.start_time)}
+                            </span>
                           )}
                         </div>
                       ))}

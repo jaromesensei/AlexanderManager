@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ToastProvider } from '@/components/ui/Toast'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import { Login } from '@/pages/Login'
@@ -24,114 +25,116 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/availability" element={<AvailabilityGroup />} />
-            <Route path="/availability/:token" element={<AvailabilityPublic />} />
-            <Route
-              path="/schedule/print/:from"
-              element={
-                <ProtectedRoute managerOnly>
-                  <SchedulePrint />
-                </ProtectedRoute>
-              }
-            />
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/availability" element={<AvailabilityGroup />} />
+              <Route path="/availability/:token" element={<AvailabilityPublic />} />
+              <Route
+                path="/schedule/print/:from"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <SchedulePrint />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppShell />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<Home />} />
               <Route
-                path="/invoices"
                 element={
-                  <ProtectedRoute managerOnly>
-                    <Invoices />
+                  <ProtectedRoute>
+                    <AppShell />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/invoices/new"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <InvoiceForm />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices/:id"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <InvoiceDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices/:id/edit"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <InvoiceForm />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/suppliers"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <Suppliers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/products"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <Products />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dishes"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <Dishes />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route
-                path="/employees"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <Employees />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/requirements"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <Requirements />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/schedule/send/:from"
-                element={
-                  <ProtectedRoute managerOnly>
-                    <SendSchedule />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
+              >
+                <Route path="/" element={<Home />} />
+                <Route
+                  path="/invoices"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <Invoices />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/invoices/new"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <InvoiceForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/invoices/:id"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <InvoiceDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/invoices/:id/edit"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <InvoiceForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/suppliers"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <Suppliers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <Products />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dishes"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <Dishes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/schedule" element={<Schedule />} />
+                <Route
+                  path="/employees"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <Employees />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/requirements"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <Requirements />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/schedule/send/:from"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <SendSchedule />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

@@ -278,7 +278,12 @@ function EmployeeForm({
       )}
 
       <div className="flex gap-2">
-        <Button onClick={submit} loading={busy} disabled={!name.trim()} className="flex-1">
+        <Button
+          onClick={submit}
+          loading={busy}
+          disabled={!name.trim()}
+          className="flex-1"
+        >
           שמירה
         </Button>
         {employee && (
