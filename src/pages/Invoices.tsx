@@ -1,5 +1,14 @@
 import { Link } from 'react-router-dom'
-import { Plus, Store, Receipt, ChevronLeft, TrendingUp, X } from 'lucide-react'
+import {
+  Plus,
+  Store,
+  Receipt,
+  ChevronLeft,
+  TrendingUp,
+  X,
+  Package,
+  UtensilsCrossed,
+} from 'lucide-react'
 import { useInvoices } from '@/lib/queries/invoices'
 import { useOpenAlerts, useAcknowledgeAlert } from '@/lib/queries/alerts'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -56,20 +65,33 @@ export function Invoices() {
       <PriceAlerts />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">חשבוניות</h1>
-        <div className="flex gap-2">
-          <Link to="/suppliers">
-            <Button size="sm" variant="secondary">
-              <Store className="h-4 w-4" />
-              ספקים
-            </Button>
-          </Link>
-          <Link to="/invoices/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4" />
-              חדשה
-            </Button>
-          </Link>
-        </div>
+        <Link to="/invoices/new">
+          <Button size="sm">
+            <Plus className="h-4 w-4" />
+            חדשה
+          </Button>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <Link to="/suppliers">
+          <Button size="sm" variant="secondary" className="w-full">
+            <Store className="h-4 w-4" />
+            ספקים
+          </Button>
+        </Link>
+        <Link to="/products">
+          <Button size="sm" variant="secondary" className="w-full">
+            <Package className="h-4 w-4" />
+            מוצרים
+          </Button>
+        </Link>
+        <Link to="/dishes">
+          <Button size="sm" variant="secondary" className="w-full">
+            <UtensilsCrossed className="h-4 w-4" />
+            מנות
+          </Button>
+        </Link>
       </div>
 
       {isLoading ? (

@@ -10,6 +10,8 @@ import { Invoices } from '@/pages/Invoices'
 import { InvoiceForm } from '@/pages/InvoiceForm'
 import { InvoiceDetail } from '@/pages/InvoiceDetail'
 import { Suppliers } from '@/pages/Suppliers'
+import { Products } from '@/pages/Products'
+import { Dishes } from '@/pages/Dishes'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
@@ -81,6 +83,22 @@ export default function App() {
                 element={
                   <ProtectedRoute managerOnly>
                     <Suppliers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/products"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <Products />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dishes"
+                element={
+                  <ProtectedRoute managerOnly>
+                    <Dishes />
                   </ProtectedRoute>
                 }
               />

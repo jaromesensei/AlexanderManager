@@ -90,6 +90,8 @@ export interface Product {
   canonical_name: string
   category_id: string | null
   default_unit: string | null
+  base_unit: string | null
+  base_per_purchase: number
   created_at: string
 }
 
