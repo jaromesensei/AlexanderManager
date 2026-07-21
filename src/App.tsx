@@ -14,6 +14,7 @@ import { InvoiceDetail } from '@/pages/InvoiceDetail'
 import { Suppliers } from '@/pages/Suppliers'
 import { Products } from '@/pages/Products'
 import { Dishes } from '@/pages/Dishes'
+import { Reports } from '@/pages/Reports'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
@@ -104,6 +105,14 @@ export default function App() {
                     element={
                       <ProtectedRoute managerOnly>
                         <Dishes />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <Reports />
                       </ProtectedRoute>
                     }
                   />

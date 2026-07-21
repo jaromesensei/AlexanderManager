@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Trash2, Package } from 'lucide-react'
+import { ArrowRight, Trash2, Package, Plus, X, ChevronDown } from 'lucide-react'
 import {
   useProducts,
   useUpdateProduct,
@@ -8,9 +8,18 @@ import {
   useLatestPrices,
   costPerBase,
 } from '@/lib/queries/products'
-import type { Product } from '@/types/database'
-import { formatCurrency } from '@/lib/utils'
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useSeedCategories,
+} from '@/lib/queries/categories'
+import type { Product, ProductCategory } from '@/types/database'
+import { formatCurrency, cn } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -20,6 +29,7 @@ const BASE_UNITS = ['גרם', 'מ"ל', 'יחידה', 'ק"ג', 'ליטר']
 export function Products() {
   const { data: products, isLoading } = useProducts()
   const { data: prices } = useLatestPrices()
+  const { data: categories } = useCategories()
 
   return (
     <div className="space-y-4">
@@ -30,9 +40,11 @@ export function Products() {
         <h1 className="text-2xl font-bold">מוצרים</h1>
       </div>
       <p className="text-sm text-neutral-400">
-        המוצרים נוצרים אוטומטית מהחשבוניות. הגדר לכל מוצר יחידת בסיס וכמה יחידות בסיס יש
-        ביחידת הקנייה — כדי לחשב עלות למנה.
+        המוצרים נוצרים אוטומטית מהחשבוניות. שייך קטגוריה (לדוחות) והגדר יחידת בסיס (לפוד
+        קוסט).
       </p>
+
+      <CategoryManager />
 
       {isLoading ? (
         <ListSkeleton />
@@ -51,7 +63,12 @@ export function Products() {
           </datalist>
           <div className="stagger space-y-2">
             {products.map((p) => (
-              <ProductRow key={p.id} product={p} latestPrice={prices?.[p.id]} />
+              <ProductRow
+                key={p.id}
+                product={p}
+                latestPrice={prices?.[p.id]}
+                categories={categories ?? []}
+              />
             ))}
           </div>
         </>
@@ -60,12 +77,96 @@ export function Products() {
   )
 }
 
+function CategoryManager() {
+  const { data: categories } = useCategories()
+  const create = useCreateCategory()
+  const del = useDeleteCategory()
+  const seed = useSeedCategories()
+  const [name, setName] = useState('')
+  const [open, setOpen] = useState(false)
+  const list = categories ?? []
+
+  function add() {
+    if (!name.trim()) return
+    create.mutate(name.trim())
+    setName('')
+  }
+
+  return (
+    <Card className="space-y-3">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between"
+      >
+        <span className="font-semibold">קטגוריות ({list.length})</span>
+        <ChevronDown
+          className={cn(
+            'h-5 w-5 text-neutral-400 transition-transform',
+            open && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {open && (
+        <>
+          {list.length === 0 ? (
+            <div className="space-y-3 py-1 text-center">
+              <p className="text-sm text-neutral-400">
+                קטגוריות עוזרות לפלח הוצאות בדוחות סוף החודש.
+              </p>
+              <Button
+                variant="secondary"
+                onClick={() => seed.mutate()}
+                loading={seed.isPending}
+              >
+                צור קטגוריות מומלצות
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {list.map((c) => (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1 text-sm"
+                >
+                  {c.name}
+                  <button
+                    onClick={() => del.mutate(c.id)}
+                    aria-label={`מחק ${c.name}`}
+                    className="text-neutral-500 hover:text-red-400"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+              placeholder="קטגוריה חדשה"
+              className="flex-1"
+            />
+            <Button onClick={add} disabled={!name.trim()} loading={create.isPending}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
+      )}
+    </Card>
+  )
+}
+
 function ProductRow({
   product,
   latestPrice,
+  categories,
 }: {
   product: Product
   latestPrice: number | undefined
+  categories: ProductCategory[]
 }) {
   const update = useUpdateProduct()
   const del = useDeleteProduct()
@@ -111,6 +212,23 @@ function ProductRow({
         נקנה ב: {product.default_unit || '—'}
         {latestPrice != null && ` · מחיר אחרון ${formatCurrency(latestPrice)}`}
       </p>
+
+      {categories.length > 0 && (
+        <Select
+          label="קטגוריה"
+          value={product.category_id ?? ''}
+          onChange={(e) =>
+            update.mutate({ id: product.id, category_id: e.target.value || null })
+          }
+        >
+          <option value="">— ללא קטגוריה —</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <div>

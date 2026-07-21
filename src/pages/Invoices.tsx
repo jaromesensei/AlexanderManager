@@ -8,6 +8,7 @@ import {
   X,
   Package,
   UtensilsCrossed,
+  BarChart3,
 } from 'lucide-react'
 import { useInvoices } from '@/lib/queries/invoices'
 import { useOpenAlerts, useAcknowledgeAlert } from '@/lib/queries/alerts'
@@ -94,6 +95,13 @@ export function Invoices() {
           </Button>
         </Link>
       </div>
+
+      <Link to="/reports">
+        <Button variant="secondary" className="w-full">
+          <BarChart3 className="h-4 w-4" />
+          דוחות והוצאות
+        </Button>
+      </Link>
 
       {isLoading ? (
         <ListSkeleton />
