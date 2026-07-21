@@ -72,11 +72,11 @@ export function SendSchedule() {
   }, [shifts])
 
   function personalMessage(name: string, list: ShiftRow[]): string {
-    const lines = [`היי ${name} 👋 המשמרות שלך:`]
+    const lines = [`היי ${name}, המשמרות שלך:`]
     for (const s of list) {
       const time = s.start_time ? ` משעה ${shortTime(s.start_time)}` : ''
       lines.push(
-        `• ${WEEKDAY_NAMES[weekdayOf(s.work_date)]} ${dm(s.work_date)} — ${SHIFT_LABELS[s.shift]}${time} (${ROLE_LABELS[s.role]})`
+        `- ${WEEKDAY_NAMES[weekdayOf(s.work_date)]} ${dm(s.work_date)} · ${SHIFT_LABELS[s.shift]}${time} (${ROLE_LABELS[s.role]})`
       )
     }
     lines.push('', `בהצלחה! · ${RESTAURANT}`)

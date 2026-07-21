@@ -29,11 +29,11 @@ export function RequestAvailability() {
 
   function personalMessage(name: string, token: string): string {
     return [
-      `היי ${name} 👋`,
+      `היי ${name},`,
       `מלא/י זמינות לשבוע ${dm(from)}–${dm(to)}:`,
       personalLink(token),
       ``,
-      `מסמנים בוקר/ערב לכל יום ושולחים. אחרי שליחה ננעל — אז דייק/י 🙏`,
+      `מסמנים בוקר/ערב לכל יום ושולחים. אחרי שליחה ננעל, אז דייק/י.`,
     ].join('\n')
   }
 

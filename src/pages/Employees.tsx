@@ -116,7 +116,7 @@ export function Employees() {
 function AvailabilityLinkButton({ employee }: { employee: EmployeeWithRoles }) {
   const [copied, setCopied] = useState(false)
   const link = `${window.location.origin}/availability/${employee.avail_token}`
-  const message = `היי ${employee.full_name} 👋 שלח לי את הזמינות שלך לשבוע הבא דרך הקישור:\n${link}`
+  const message = `היי ${employee.full_name}, שלח לי את הזמינות שלך לשבוע הבא דרך הקישור:\n${link}`
   const wa = toWaNumber(employee.phone)
 
   async function copy() {
