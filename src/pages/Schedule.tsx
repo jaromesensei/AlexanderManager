@@ -47,6 +47,7 @@ import { formatDate, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 export function Schedule() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
@@ -339,8 +340,25 @@ function ShiftSection({
   const create = useCreateShift()
   const update = useUpdateShift()
   const del = useDeleteShift()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [defStart, setDefStart] = useState(DEFAULT_START[shift])
+
+  // מחיקת שיבוץ עם אפשרות ביטול (שחזור מיידי)
+  function removeWithUndo(a: ShiftRow) {
+    del.mutate(a.id)
+    toast.action('המשמרת הוסרה', 'בטל', () =>
+      create.mutate({
+        employee_id: a.employee_id,
+        work_date: a.work_date,
+        shift: a.shift,
+        role: a.role,
+        start_time: a.start_time,
+        end_time: a.end_time,
+        employee: a.employee,
+      })
+    )
+  }
 
   const active = employees.filter((e) => e.active)
   const empById: Record<string, EmployeeWithRoles> = {}
@@ -475,7 +493,7 @@ function ShiftSection({
               ))}
             </select>
             <button
-              onClick={() => del.mutate(a.id)}
+              onClick={() => removeWithUndo(a)}
               className="rounded-lg p-1 text-neutral-500 hover:text-red-400"
               aria-label="הסר"
             >

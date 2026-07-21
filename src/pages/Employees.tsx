@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 export function Employees() {
   const { data: employees, isLoading } = useEmployees()
@@ -157,6 +158,7 @@ function EmployeeForm({
 }) {
   const save = useSaveEmployee()
   const del = useDeleteEmployee()
+  const confirm = useConfirm()
   const [name, setName] = useState(employee?.full_name ?? '')
   const [phone, setPhone] = useState(employee?.phone ?? '')
   const [rate, setRate] = useState(
@@ -197,7 +199,13 @@ function EmployeeForm({
 
   async function remove() {
     if (!employee) return
-    if (!confirm(`למחוק את ${employee.full_name}?`)) return
+    const ok = await confirm({
+      title: 'למחוק עובד?',
+      message: `${employee.full_name} יימחק, כולל השיוך לתפקידים.`,
+      confirmLabel: 'מחק',
+      danger: true,
+    })
+    if (!ok) return
     await del.mutateAsync(employee.id)
     onClose()
   }

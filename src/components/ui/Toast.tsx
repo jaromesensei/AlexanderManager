@@ -8,23 +8,31 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { CheckCircle2, XCircle, Info, X } from 'lucide-react'
+import { CheckCircle2, XCircle, Info, X, Undo2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { registerToast } from '@/lib/toastBus'
 import { hapticSuccess, hapticError } from '@/lib/haptics'
 
 type ToastType = 'success' | 'error' | 'info'
 
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 interface Toast {
   id: number
   type: ToastType
   message: string
+  action?: ToastAction
 }
 
 interface ToastApi {
   success: (message: string) => void
   error: (message: string) => void
   info: (message: string) => void
+  /** הודעה עם כפתור פעולה (למשל "בטל" אחרי מחיקה). מוצגת ארוך יותר. */
+  action: (message: string, label: string, onAction: () => void) => void
 }
 
 const ToastContext = createContext<ToastApi | null>(null)
@@ -50,28 +58,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const push = useCallback(
-    (type: ToastType, message: string) => {
+    (type: ToastType, message: string, action?: ToastAction) => {
       const id = nextId.current++
-      setToasts((prev) => [...prev, { id, type, message }])
+      setToasts((prev) => [...prev, { id, type, message, action }])
       if (type === 'success') hapticSuccess()
       else if (type === 'error') hapticError()
-      window.setTimeout(() => dismiss(id), 3500)
+      window.setTimeout(() => dismiss(id), action ? 6000 : 3500)
+      return id
     },
     [dismiss]
   )
 
   const api = useMemo<ToastApi>(
     () => ({
-      success: (m) => push('success', m),
-      error: (m) => push('error', m),
-      info: (m) => push('info', m),
+      success: (m) => void push('success', m),
+      error: (m) => void push('error', m),
+      info: (m) => void push('info', m),
+      action: (m, label, onAction) => void push('info', m, { label, onClick: onAction }),
     }),
     [push]
   )
 
   // מאפשר לקוד מחוץ ל-React (queryClient) לפלוט הודעות דרך אותו viewport
   useEffect(() => {
-    registerToast((type, message) => push(type, message))
+    registerToast((type, message) => void push(type, message))
     return () => registerToast(null)
   }, [push])
 
@@ -82,9 +92,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => {
           const { icon: Icon, cls } = STYLES[t.type]
           return (
-            <button
+            <div
               key={t.id}
-              onClick={() => dismiss(t.id)}
               className={cn(
                 'pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border px-4 py-3 text-right shadow-lg',
                 'animate-[toast-in_0.2s_ease-out]',
@@ -93,8 +102,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             >
               <Icon className="h-5 w-5 shrink-0" />
               <span className="flex-1 text-sm font-medium">{t.message}</span>
-              <X className="h-4 w-4 shrink-0 opacity-60" />
-            </button>
+              {t.action ? (
+                <button
+                  onClick={() => {
+                    t.action?.onClick()
+                    dismiss(t.id)
+                  }}
+                  className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-brand-500 hover:bg-white/5"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  {t.action.label}
+                </button>
+              ) : (
+                <button
+                  onClick={() => dismiss(t.id)}
+                  aria-label="סגור"
+                  className="shrink-0 opacity-60 hover:opacity-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           )
         })}
       </div>

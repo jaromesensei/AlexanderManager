@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 // אחוז פוד קוסט → צבע
 function fcColor(pct: number): string {
@@ -151,6 +152,7 @@ function DishForm({
 }) {
   const save = useSaveDish()
   const del = useDeleteDish()
+  const confirm = useConfirm()
   const [name, setName] = useState(dish?.name ?? '')
   const [menuShekels, setMenuShekels] = useState(
     dish?.menu_price != null ? String(agorotToShekels(dish.menu_price)) : ''
@@ -209,7 +211,13 @@ function DishForm({
 
   async function remove() {
     if (!dish) return
-    if (!confirm(`למחוק את "${dish.name}"?`)) return
+    const ok = await confirm({
+      title: 'למחוק מנה?',
+      message: `המנה "${dish.name}" והמתכון שלה יימחקו.`,
+      confirmLabel: 'מחק',
+      danger: true,
+    })
+    if (!ok) return
     await del.mutateAsync(dish.id)
     onClose()
   }

@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 export function Suppliers() {
   const { data: suppliers, isLoading } = useSuppliers()
@@ -96,6 +97,7 @@ function SupplierForm({
   const create = useCreateSupplier()
   const update = useUpdateSupplier()
   const del = useDeleteSupplier()
+  const confirm = useConfirm()
   const [name, setName] = useState(supplier?.name ?? '')
   const [phone, setPhone] = useState(supplier?.phone ?? '')
   const [notes, setNotes] = useState(supplier?.notes ?? '')
@@ -120,7 +122,13 @@ function SupplierForm({
 
   async function remove() {
     if (!supplier) return
-    if (!confirm(`למחוק את הספק "${supplier.name}"?`)) return
+    const ok = await confirm({
+      title: 'למחוק ספק?',
+      message: `הספק "${supplier.name}" יימחק לצמיתות.`,
+      confirmLabel: 'מחק',
+      danger: true,
+    })
+    if (!ok) return
     await del.mutateAsync(supplier.id)
     onClose()
   }

@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 const BASE_UNITS = ['גרם', 'מ"ל', 'יחידה', 'ק"ג', 'ליטר']
 
@@ -68,6 +69,7 @@ function ProductRow({
 }) {
   const update = useUpdateProduct()
   const del = useDeleteProduct()
+  const confirm = useConfirm()
   const [baseUnit, setBaseUnit] = useState(product.base_unit ?? '')
   const [perPurchase, setPerPurchase] = useState(String(product.base_per_purchase ?? 1))
 
@@ -89,8 +91,14 @@ function ProductRow({
       <div className="flex items-center justify-between">
         <p className="font-semibold">{product.canonical_name}</p>
         <button
-          onClick={() => {
-            if (confirm(`למחוק את "${product.canonical_name}"?`)) del.mutate(product.id)
+          onClick={async () => {
+            const ok = await confirm({
+              title: 'למחוק מוצר?',
+              message: `"${product.canonical_name}" יימחק מהקטלוג.`,
+              confirmLabel: 'מחק',
+              danger: true,
+            })
+            if (ok) del.mutate(product.id)
           }}
           className="rounded-lg p-1.5 text-neutral-500 hover:text-red-400"
           aria-label="מחק"

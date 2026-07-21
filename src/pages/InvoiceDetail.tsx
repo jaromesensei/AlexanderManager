@@ -7,12 +7,14 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 export function InvoiceDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: invoice, isLoading } = useInvoice(id)
   const del = useDeleteInvoice()
+  const confirm = useConfirm()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -24,7 +26,13 @@ export function InvoiceDetail() {
     return <p className="py-10 text-center text-neutral-400">החשבונית לא נמצאה.</p>
 
   async function remove() {
-    if (!confirm('למחוק את החשבונית?')) return
+    const ok = await confirm({
+      title: 'למחוק חשבונית?',
+      message: 'החשבונית וכל השורות שלה יימחקו לצמיתות.',
+      confirmLabel: 'מחק',
+      danger: true,
+    })
+    if (!ok) return
     await del.mutateAsync(id!)
     navigate('/invoices')
   }
