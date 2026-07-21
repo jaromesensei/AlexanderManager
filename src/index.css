@@ -60,6 +60,11 @@
   --gr-950: 240 253 244;
 
   --accent-soft: 224 231 255;
+
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / 0.05), 0 1px 3px rgb(24 24 27 / 0.05);
+  --shadow-md:
+    0 4px 8px -3px rgb(24 24 27 / 0.06), 0 14px 28px -10px rgb(24 24 27 / 0.14);
+  --ring: 79 70 229;
 }
 
 /* ===== כהה ===== */
@@ -115,6 +120,10 @@
     --gr-950: 5 46 22;
 
     --accent-soft: 30 27 75;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 10px 30px -10px rgb(0 0 0 / 0.6);
+    --ring: 129 140 248;
   }
 }
 
@@ -170,6 +179,10 @@
   --gr-950: 5 46 22;
 
   --accent-soft: 30 27 75;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 10px 30px -10px rgb(0 0 0 / 0.6);
+  --ring: 129 140 248;
 }
 
 @layer base {
@@ -214,6 +227,14 @@
   /* רקע רך לאייקוני מודולים - מתאים לבהיר וכהה */
   .accent-soft {
     background-color: rgb(var(--accent-soft));
+  }
+
+  /* סולם הגבהה - צל רך שמתאים לבהיר ולכהה */
+  .elev-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  .elev-md {
+    box-shadow: var(--shadow-md);
   }
 }
 
@@ -276,12 +297,18 @@
   }
 }
 
-/* משטח לחיץ - משוב מגע עדין */
+/* משטח לחיץ - משוב מגע עדין + הגבהה בריחוף (עכבר בלבד) */
 .tap {
   transition:
     transform 0.12s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    box-shadow 0.18s ease;
 }
 .tap:active {
   transform: scale(0.985);
+}
+@media (hover: hover) {
+  .tap:hover {
+    box-shadow: var(--shadow-md);
+  }
 }
