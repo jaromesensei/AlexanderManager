@@ -17,7 +17,7 @@ export function Placeholder({
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{title}</h1>
       <Card className="flex flex-col items-center gap-3 py-10 text-center">
-        <div className="rounded-2xl bg-brand-950 p-4">
+        <div className="accent-soft rounded-2xl p-4">
           <Icon className="h-8 w-8 text-brand-500" />
         </div>
         <p className="text-neutral-300">{description}</p>

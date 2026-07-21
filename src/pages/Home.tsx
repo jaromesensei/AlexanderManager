@@ -207,7 +207,7 @@ function ModuleTile({
     <Link to={to}>
       <Card className="tap flex items-center justify-between hover:border-brand-700">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-brand-950 p-3">
+          <div className="accent-soft rounded-xl p-3">
             <Icon className="h-6 w-6 text-brand-500" />
           </div>
           <div>

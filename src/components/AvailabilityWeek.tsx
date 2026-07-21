@@ -181,7 +181,7 @@ export function AvailabilityWeek({
                       className={cn(
                         'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
                         on
-                          ? 'bg-green-700 text-white'
+                          ? 'bg-[#16a34a] text-white'
                           : 'bg-neutral-800 text-neutral-400',
                         locked && 'opacity-60'
                       )}

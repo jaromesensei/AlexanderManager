@@ -291,7 +291,7 @@ function AvailabilityBoard({
                   <Icon
                     className={cn(
                       'mt-0.5 h-4 w-4 shrink-0',
-                      shift === 'morning' ? 'text-amber-400' : 'text-indigo-400'
+                      shift === 'morning' ? 'text-amber-400' : 'text-brand-500'
                     )}
                   />
                   {names.length > 0 ? (
@@ -397,7 +397,7 @@ function ShiftSection({
           <Icon
             className={cn(
               'h-4 w-4',
-              shift === 'morning' ? 'text-amber-400' : 'text-indigo-400'
+              shift === 'morning' ? 'text-amber-400' : 'text-brand-500'
             )}
           />
           <span className="text-sm font-semibold">{SHIFT_LABELS[shift]}</span>

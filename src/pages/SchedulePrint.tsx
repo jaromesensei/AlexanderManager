@@ -45,7 +45,7 @@ export function SchedulePrint() {
   if (isLoading) return <FullScreenSpinner />
 
   return (
-    <div className="min-h-screen bg-white p-4 text-neutral-900" dir="rtl">
+    <div className="min-h-screen bg-white p-4 text-[#18181b]" dir="rtl">
       <style>{`@page { size: A4 landscape; margin: 8mm; }
         @media print {
           .no-print { display: none !important; }
@@ -53,7 +53,7 @@ export function SchedulePrint() {
         }`}</style>
 
       <div className="no-print mb-4 flex items-center justify-between">
-        <Link to="/schedule" className="text-neutral-500">
+        <Link to="/schedule" className="text-[#71717a]">
           <ArrowRight className="h-5 w-5" />
         </Link>
         <button
@@ -66,24 +66,24 @@ export function SchedulePrint() {
       </div>
 
       <h1 className="mb-1 text-center text-xl font-bold">סידור עבודה · אלכסנדר</h1>
-      <p className="mb-4 text-center text-sm text-neutral-600">
+      <p className="mb-4 text-center text-sm text-[#52525b]">
         {dm(from)} – {dm(to)}
       </p>
 
       {(shifts?.length ?? 0) === 0 ? (
-        <p className="text-center text-neutral-500">אין שיבוצים בשבוע זה.</p>
+        <p className="text-center text-[#71717a]">אין שיבוצים בשבוע זה.</p>
       ) : (
         <table className="w-full table-fixed border-collapse text-sm">
           <thead>
             <tr>
-              <th className="w-16 border border-neutral-400 bg-neutral-100 p-2"></th>
+              <th className="w-16 border border-[#a3a3a3] bg-[#f4f4f5] p-2"></th>
               {days.map((d, i) => (
                 <th
                   key={i}
-                  className="border border-neutral-400 bg-neutral-100 p-1.5 text-center"
+                  className="border border-[#a3a3a3] bg-[#f4f4f5] p-1.5 text-center"
                 >
                   <div className="font-bold">{WEEKDAY_NAMES[i]}</div>
-                  <div className="text-xs font-normal text-neutral-500">
+                  <div className="text-xs font-normal text-[#71717a]">
                     {dm(toISODate(d))}
                   </div>
                 </th>
@@ -93,7 +93,7 @@ export function SchedulePrint() {
           <tbody>
             {SHIFTS.map((shift: ShiftType) => (
               <tr key={shift}>
-                <td className="border border-neutral-400 bg-neutral-50 p-1.5 text-center font-bold">
+                <td className="border border-[#a3a3a3] bg-[#fafafa] p-1.5 text-center font-bold">
                   {SHIFT_LABELS[shift]}
                 </td>
                 {days.map((d, i) => {
@@ -101,16 +101,14 @@ export function SchedulePrint() {
                   return (
                     <td
                       key={i}
-                      className="border border-neutral-400 p-1.5 align-top text-xs leading-relaxed"
+                      className="border border-[#a3a3a3] p-1.5 align-top text-xs leading-relaxed"
                     >
                       {cell.map((s) => (
                         <div key={s.id}>
                           {s.employee?.full_name}{' '}
-                          <span className="text-neutral-500">
-                            ({ROLE_LABELS[s.role]})
-                          </span>
+                          <span className="text-[#71717a]">({ROLE_LABELS[s.role]})</span>
                           {s.start_time && (
-                            <span className="text-neutral-600">
+                            <span className="text-[#52525b]">
                               {' '}
                               {shortTime(s.start_time)}
                             </span>

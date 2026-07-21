@@ -125,7 +125,7 @@ export function Requirements() {
             {shift === 'morning' ? (
               <Sun className="h-5 w-5 text-amber-400" />
             ) : (
-              <Moon className="h-5 w-5 text-indigo-400" />
+              <Moon className="h-5 w-5 text-brand-500" />
             )}
             <h2 className="font-semibold">משמרת {SHIFT_LABELS[shift]}</h2>
           </div>
