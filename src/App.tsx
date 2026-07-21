@@ -17,6 +17,7 @@ import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
 import { SendSchedule } from '@/pages/SendSchedule'
+import { RequestAvailability } from '@/pages/RequestAvailability'
 import { SchedulePrint } from '@/pages/SchedulePrint'
 import { AvailabilityPublic } from '@/pages/AvailabilityPublic'
 import { AvailabilityGroup } from '@/pages/AvailabilityGroup'
@@ -126,6 +127,14 @@ export default function App() {
                   element={
                     <ProtectedRoute managerOnly>
                       <SendSchedule />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/schedule/request/:from"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <RequestAvailability />
                     </ProtectedRoute>
                   }
                 />

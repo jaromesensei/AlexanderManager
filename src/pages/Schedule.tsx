@@ -242,6 +242,13 @@ function AvailabilityBoard({
 
   return (
     <div className="space-y-3">
+      <Link to={`/schedule/request/${weekStart}`}>
+        <Button variant="secondary" className="w-full">
+          <Send className="h-4 w-4" />
+          בקש זמינות לשבוע זה
+        </Button>
+      </Link>
+
       {isLocked ? (
         <Button
           variant="secondary"

@@ -23,13 +23,20 @@ export function AvailabilityWeek({
   submitData,
   invalidMsg = 'הקישור לא תקין או שפג תוקפו.',
   onBack,
+  fixedWeek,
 }: {
   getData: (from: string, to: string) => Promise<AvailData>
   submitData: (entries: AvailEntry[]) => Promise<void>
   invalidMsg?: string
   onBack?: () => void
+  /** אם מוגדר (ISO של תחילת שבוע) - הטופס נעול לשבוע זה בלבד, בלי דפדוף. */
+  fixedWeek?: string
 }) {
-  const [weekStart, setWeekStart] = useState(() => addDays(startOfWeek(new Date()), 7))
+  const [weekStart, setWeekStart] = useState(() =>
+    fixedWeek
+      ? startOfWeek(new Date(fixedWeek + 'T00:00:00'))
+      : addDays(startOfWeek(new Date()), 7)
+  )
   const from = toISODate(weekStart)
   const to = toISODate(addDays(weekStart, 6))
 
@@ -124,25 +131,31 @@ export function AvailabilityWeek({
         </div>
       )}
 
-      <div className="mb-3 flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900 px-2 py-2">
-        <button
-          onClick={() => setWeekStart(addDays(weekStart, -7))}
-          className="rounded-lg p-2 text-neutral-300 hover:bg-neutral-800"
-          aria-label="שבוע קודם"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-        <span className="text-sm font-medium text-neutral-300">
-          {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
-        </span>
-        <button
-          onClick={() => setWeekStart(addDays(weekStart, 7))}
-          className="rounded-lg p-2 text-neutral-300 hover:bg-neutral-800"
-          aria-label="שבוע הבא"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-      </div>
+      {fixedWeek ? (
+        <div className="mb-3 rounded-2xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-center text-sm font-medium text-neutral-300">
+          שבוע {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
+        </div>
+      ) : (
+        <div className="mb-3 flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900 px-2 py-2">
+          <button
+            onClick={() => setWeekStart(addDays(weekStart, -7))}
+            className="rounded-lg p-2 text-neutral-300 hover:bg-neutral-800"
+            aria-label="שבוע קודם"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <span className="text-sm font-medium text-neutral-300">
+            {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
+          </span>
+          <button
+            onClick={() => setWeekStart(addDays(weekStart, 7))}
+            className="rounded-lg p-2 text-neutral-300 hover:bg-neutral-800"
+            aria-label="שבוע הבא"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        </div>
+      )}
 
       <div className="space-y-2">
         {days.map((day, i) => {

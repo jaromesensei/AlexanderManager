@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   getRoster,
   getAvailabilityNamed,
@@ -13,6 +14,8 @@ export function AvailabilityGroup() {
   const [roster, setRoster] = useState<RosterEntry[] | null>(null)
   const [picked, setPicked] = useState<RosterEntry | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [params] = useSearchParams()
+  const week = params.get('week') ?? undefined
 
   useEffect(() => {
     let active = true
@@ -30,6 +33,7 @@ export function AvailabilityGroup() {
         getData={(from, to) => getAvailabilityNamed(picked.id, from, to)}
         submitData={(entries) => submitAvailabilityNamed(picked.id, entries)}
         onBack={() => setPicked(null)}
+        fixedWeek={week}
       />
     )
   }
