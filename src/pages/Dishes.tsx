@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Plus, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowRight, Plus, Pencil, Trash2, X, UtensilsCrossed } from 'lucide-react'
 import {
   useDishes,
   useSaveDish,
@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // אחוז פוד קוסט → צבע
 function fcColor(pct: number): string {
@@ -84,15 +85,21 @@ export function Dishes() {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <ListSkeleton />
       ) : !dishes?.length ? (
-        <Card className="py-10 text-center text-neutral-400">
-          עדיין אין מנות. הוסף מנה והרכב לה מתכון.
-        </Card>
+        <EmptyState
+          icon={UtensilsCrossed}
+          title="עדיין אין מנות"
+          description="הוסף מנה והרכב לה מתכון כדי לחשב פוד קוסט."
+          action={
+            <Button size="sm" onClick={() => setEditing('new')}>
+              <Plus className="h-4 w-4" />
+              מנה חדשה
+            </Button>
+          }
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="stagger space-y-2">
           {dishes.map((d) => {
             const { cost, complete } = dishCost(d)
             const pct = d.menu_price ? (cost / d.menu_price) * 100 : null

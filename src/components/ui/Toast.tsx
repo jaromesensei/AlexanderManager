@@ -11,6 +11,7 @@ import {
 import { CheckCircle2, XCircle, Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { registerToast } from '@/lib/toastBus'
+import { hapticSuccess, hapticError } from '@/lib/haptics'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -52,6 +53,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (type: ToastType, message: string) => {
       const id = nextId.current++
       setToasts((prev) => [...prev, { id, type, message }])
+      if (type === 'success') hapticSuccess()
+      else if (type === 'error') hapticError()
       window.setTimeout(() => dismiss(id), 3500)
     },
     [dismiss]

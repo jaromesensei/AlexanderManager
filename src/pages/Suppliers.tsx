@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Plus, Pencil, Trash2, Phone, X } from 'lucide-react'
+import { ArrowRight, Plus, Pencil, Trash2, Phone, X, Truck } from 'lucide-react'
 import {
   useSuppliers,
   useCreateSupplier,
@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export function Suppliers() {
   const { data: suppliers, isLoading } = useSuppliers()
@@ -41,15 +42,21 @@ export function Suppliers() {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <ListSkeleton />
       ) : !suppliers?.length ? (
-        <Card className="py-10 text-center text-neutral-400">
-          עדיין אין ספקים. הוסף את הספק הראשון שלך.
-        </Card>
+        <EmptyState
+          icon={Truck}
+          title="עדיין אין ספקים"
+          description="הוסף את הספקים שמהם אתה מזמין, כדי לשייך אליהם חשבוניות."
+          action={
+            <Button size="sm" onClick={() => setEditing('new')}>
+              <Plus className="h-4 w-4" />
+              ספק חדש
+            </Button>
+          }
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="stagger space-y-2">
           {suppliers.map((s) => (
             <Card key={s.id} className="flex items-center justify-between">
               <div>

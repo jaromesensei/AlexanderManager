@@ -36,7 +36,7 @@ export function Home() {
 
       {isManager && <ManagerDashboard />}
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {isManager && (
           <ModuleTile
             to="/invoices"
@@ -119,7 +119,7 @@ function ManagerDashboard() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="stagger space-y-2">
       <p className="px-1 text-sm font-semibold text-neutral-300">דורש תשומת לב</p>
       {alertCount > 0 && (
         <StatCard
@@ -175,7 +175,7 @@ function StatCard({
     <Link to={to}>
       <div
         className={cn(
-          'flex items-center justify-between rounded-2xl border p-4',
+          'tap flex items-center justify-between rounded-2xl border p-4',
           COLORS[color]
         )}
       >
@@ -205,7 +205,7 @@ function ModuleTile({
 }) {
   return (
     <Link to={to}>
-      <Card className="flex items-center justify-between transition-colors hover:border-brand-700">
+      <Card className="tap flex items-center justify-between hover:border-brand-700">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-brand-950 p-3">
             <Icon className="h-6 w-6 text-brand-500" />

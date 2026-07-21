@@ -14,7 +14,8 @@ import { useOpenAlerts, useAcknowledgeAlert } from '@/lib/queries/alerts'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 function PriceAlerts() {
   const { data: alerts } = useOpenAlerts()
@@ -95,27 +96,26 @@ export function Invoices() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <ListSkeleton />
       ) : !invoices?.length ? (
-        <Card className="flex flex-col items-center gap-3 py-10 text-center">
-          <div className="rounded-2xl bg-brand-950 p-4">
-            <Receipt className="h-8 w-8 text-brand-500" />
-          </div>
-          <p className="text-neutral-300">עדיין אין חשבוניות</p>
-          <Link to="/invoices/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              הוסף חשבונית ראשונה
-            </Button>
-          </Link>
-        </Card>
+        <EmptyState
+          icon={Receipt}
+          title="עדיין אין חשבוניות"
+          description="צלם או הוסף חשבונית ספק, והמחירים והמוצרים ייבנו אוטומטית."
+          action={
+            <Link to="/invoices/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                הוסף חשבונית ראשונה
+              </Button>
+            </Link>
+          }
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="stagger space-y-2">
           {invoices.map((inv) => (
             <Link key={inv.id} to={`/invoices/${inv.id}`}>
-              <Card className="flex items-center justify-between transition-colors hover:border-brand-700">
+              <Card className="tap flex items-center justify-between hover:border-brand-700">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="truncate font-semibold">

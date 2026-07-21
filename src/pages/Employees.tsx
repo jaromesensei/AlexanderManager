@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Plus, Pencil, Trash2, X, Phone, Send, Check } from 'lucide-react'
+import {
+  ArrowRight,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Phone,
+  Send,
+  Check,
+  Users,
+} from 'lucide-react'
 import {
   useEmployees,
   useSaveEmployee,
@@ -9,13 +19,13 @@ import {
 } from '@/lib/queries/employees'
 import type { StaffRole } from '@/types/database'
 import { STAFF_ROLES, ROLE_LABELS } from '@/lib/scheduling'
-import { toWaNumber, waLink, shareText } from '@/lib/whatsapp'
-import { Share2 } from 'lucide-react'
+import { toWaNumber, waLink } from '@/lib/whatsapp'
 import { shekelsToAgorot, agorotToShekels, formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export function Employees() {
   const { data: employees, isLoading } = useEmployees()
@@ -36,8 +46,6 @@ export function Employees() {
         </Button>
       </div>
 
-      <GroupLinkButton />
-
       {editing && (
         <EmployeeForm
           employee={editing === 'new' ? null : editing}
@@ -46,15 +54,21 @@ export function Employees() {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <ListSkeleton />
       ) : !employees?.length ? (
-        <Card className="py-10 text-center text-neutral-400">
-          עדיין אין עובדים. הוסף את הראשון.
-        </Card>
+        <EmptyState
+          icon={Users}
+          title="עדיין אין עובדים"
+          description="הוסף את העובדים כדי לשבץ אותם בסידור ולבקש זמינות."
+          action={
+            <Button size="sm" onClick={() => setEditing('new')}>
+              <Plus className="h-4 w-4" />
+              עובד חדש
+            </Button>
+          }
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="stagger space-y-2">
           {employees.map((e) => (
             <Card key={e.id} className="flex items-center justify-between">
               <div>
@@ -95,33 +109,6 @@ export function Employees() {
         </div>
       )}
     </div>
-  )
-}
-
-function GroupLinkButton() {
-  const [status, setStatus] = useState<string | null>(null)
-  const link = `${window.location.origin}/availability`
-  const message = `היי 👋 מלאו את הזמינות שלכם לשבוע הבא (בחרו את השם שלכם):\n${link}`
-
-  async function share() {
-    const res = await shareText(message)
-    setStatus(res === 'copied' ? 'הקישור הועתק ✓' : res === 'failed' ? 'נכשל' : null)
-    setTimeout(() => setStatus(null), 2000)
-  }
-
-  return (
-    <Card className="flex items-center justify-between border-brand-900 bg-brand-950/20">
-      <div>
-        <p className="font-semibold">קישור זמינות קבוצתי</p>
-        <p className="text-sm text-neutral-400">
-          {status ?? 'קישור אחד לכל הצוות — שתף בקבוצה'}
-        </p>
-      </div>
-      <Button size="sm" onClick={share}>
-        <Share2 className="h-4 w-4" />
-        שתף
-      </Button>
-    </Card>
   )
 }
 

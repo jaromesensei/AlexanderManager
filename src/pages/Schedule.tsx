@@ -46,7 +46,7 @@ import {
 import { formatDate, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { ListSkeleton } from '@/components/ui/Skeleton'
 
 export function Schedule() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
@@ -175,11 +175,9 @@ export function Schedule() {
           weekStart={from}
         />
       ) : isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <ListSkeleton rows={7} />
       ) : (
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {days.map((day, i) => {
             const iso = toISODate(day)
             const dayShifts = byDate[iso] ?? []

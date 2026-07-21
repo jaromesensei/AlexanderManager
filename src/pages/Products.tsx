@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Trash2 } from 'lucide-react'
+import { ArrowRight, Trash2, Package } from 'lucide-react'
 import {
   useProducts,
   useUpdateProduct,
@@ -11,7 +11,8 @@ import {
 import type { Product } from '@/types/database'
 import { formatCurrency } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const BASE_UNITS = ['גרם', 'מ"ל', 'יחידה', 'ק"ג', 'ליטר']
 
@@ -33,26 +34,27 @@ export function Products() {
       </p>
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <ListSkeleton />
       ) : !products?.length ? (
-        <Card className="py-10 text-center text-neutral-400">
-          עדיין אין מוצרים. אשר חשבונית והמוצרים ייווצרו אוטומטית.
-        </Card>
+        <EmptyState
+          icon={Package}
+          title="עדיין אין מוצרים"
+          description="אשר חשבונית והמוצרים ייווצרו אוטומטית מהשורות שלה."
+        />
       ) : (
-        <datalist id="base-units">
-          {BASE_UNITS.map((u) => (
-            <option key={u} value={u} />
-          ))}
-        </datalist>
+        <>
+          <datalist id="base-units">
+            {BASE_UNITS.map((u) => (
+              <option key={u} value={u} />
+            ))}
+          </datalist>
+          <div className="stagger space-y-2">
+            {products.map((p) => (
+              <ProductRow key={p.id} product={p} latestPrice={prices?.[p.id]} />
+            ))}
+          </div>
+        </>
       )}
-
-      <div className="space-y-2">
-        {products?.map((p) => (
-          <ProductRow key={p.id} product={p} latestPrice={prices?.[p.id]} />
-        ))}
-      </div>
     </div>
   )
 }

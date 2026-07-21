@@ -17,7 +17,7 @@ export default defineConfig({
         lang: 'he',
         dir: 'rtl',
         theme_color: '#b91c1c',
-        background_color: '#0f0f0f',
+        background_color: '#12100e',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

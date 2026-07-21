@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { NAV_ITEMS } from './navItems'
 import { cn } from '@/lib/utils'
+import { hapticTap } from '@/lib/haptics'
 
 export function BottomNav() {
   const { isManager } = useAuth()
@@ -15,6 +16,7 @@ export function BottomNav() {
             key={item.to}
             to={item.to}
             end={item.to === '/'}
+            onClick={hapticTap}
             className={({ isActive }) =>
               cn(
                 'flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors',
