@@ -90,7 +90,7 @@ export function SchedulePrint() {
             סידור עבודה שבועי
           </div>
           <h1 className="text-3xl font-extrabold leading-none tracking-tight">אלכסנדר</h1>
-          <p className="mt-1 text-sm text-[#71717a]">מסעדת המבורגרים · נהריה</p>
+          <p className="mt-1 text-sm text-[#71717a]">דיינר מקומי</p>
         </div>
         <div className="text-left">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#a1a1aa]">
@@ -182,7 +182,7 @@ export function SchedulePrint() {
 
       {/* כותרת תחתונה */}
       <footer className="mt-5 flex items-center justify-between border-t border-[#e5e7eb] pt-3 text-[11px] text-[#a1a1aa]">
-        <span className="font-semibold text-[#71717a]">אלכסנדר · נהריה</span>
+        <span className="font-semibold text-[#71717a]">אלכסנדר · דיינר מקומי</span>
         <span className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1">
             <span
