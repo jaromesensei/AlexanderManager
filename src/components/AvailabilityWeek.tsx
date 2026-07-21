@@ -10,7 +10,6 @@ import {
   SHIFT_LABELS,
 } from '@/lib/scheduling'
 import { formatDate, cn } from '@/lib/utils'
-import { APP_VERSION } from '@/version'
 import { Button } from '@/components/ui/Button'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
 import type { ShiftType } from '@/types/database'
@@ -220,8 +219,6 @@ export function AvailabilityWeek({
           )}
         </Button>
       </div>
-
-      <p className="mt-4 text-center text-xs text-neutral-600">גרסה {APP_VERSION}</p>
     </div>
   )
 }

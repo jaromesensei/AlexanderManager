@@ -1,5 +1,3 @@
-import { APP_VERSION } from '@/version'
-
 // הקישור הקבוצתי בוטל: בורר-שמות מאפשר למלא זמינות בשם עובד אחר.
 // כל עובד ממלא זמינות דרך הקישור האישי שלו בלבד.
 export function AvailabilityGroup() {
@@ -12,7 +10,6 @@ export function AvailabilityGroup() {
       <p className="mt-2 text-sm text-neutral-500">
         לכל עובד יש קישור אישי משלו — כך אי אפשר למלא זמינות בשם מישהו אחר.
       </p>
-      <p className="mt-8 text-xs text-neutral-600">גרסה {APP_VERSION}</p>
     </div>
   )
 }

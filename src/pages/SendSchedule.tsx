@@ -55,9 +55,11 @@ export function SendSchedule() {
         curDate = s.work_date
         lines.push('', `יום ${WEEKDAY_NAMES[weekdayOf(s.work_date)]} ${dm(s.work_date)}`)
       }
-      const icon = s.shift === 'morning' ? '☀️' : '🌙'
+      const label = SHIFT_LABELS[s.shift]
       const time = s.start_time ? ` משעה ${shortTime(s.start_time)}` : ''
-      lines.push(`${icon} ${s.employee?.full_name ?? ''} (${ROLE_LABELS[s.role]})${time}`)
+      lines.push(
+        `${label} · ${s.employee?.full_name ?? ''} (${ROLE_LABELS[s.role]})${time}`
+      )
     }
     return lines.join('\n').trim()
   }, [shifts, from, to])
