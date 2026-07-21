@@ -1,76 +1,18 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import {
-  getRoster,
-  getAvailabilityNamed,
-  submitAvailabilityNamed,
-  type RosterEntry,
-} from '@/lib/queries/availability'
-import { AvailabilityWeek } from '@/components/AvailabilityWeek'
-import { FullScreenSpinner } from '@/components/ui/Spinner'
 import { APP_VERSION } from '@/version'
 
+// הקישור הקבוצתי בוטל: בורר-שמות מאפשר למלא זמינות בשם עובד אחר.
+// כל עובד ממלא זמינות דרך הקישור האישי שלו בלבד.
 export function AvailabilityGroup() {
-  const [roster, setRoster] = useState<RosterEntry[] | null>(null)
-  const [picked, setPicked] = useState<RosterEntry | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [params] = useSearchParams()
-  const week = params.get('week') ?? undefined
-
-  useEffect(() => {
-    let active = true
-    getRoster()
-      .then((r) => active && setRoster(r))
-      .catch(() => active && setError('טעינת רשימת העובדים נכשלה.'))
-    return () => {
-      active = false
-    }
-  }, [])
-
-  if (picked) {
-    return (
-      <AvailabilityWeek
-        getData={(from, to) => getAvailabilityNamed(picked.id, from, to)}
-        submitData={(entries) => submitAvailabilityNamed(picked.id, entries)}
-        onBack={() => setPicked(null)}
-        fixedWeek={week}
-      />
-    )
-  }
-
-  if (error)
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6 text-center">
-        <p className="text-neutral-300">{error}</p>
-      </div>
-    )
-
-  if (!roster) return <FullScreenSpinner />
-
   return (
-    <div className="mx-auto min-h-screen max-w-lg px-4 py-6">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-extrabold text-brand-500">אלכסנדר</h1>
-        <p className="mt-1 text-neutral-300">בחר את השם שלך למילוי זמינות</p>
-      </div>
-
-      {roster.length === 0 ? (
-        <p className="text-center text-neutral-400">אין עובדים פעילים.</p>
-      ) : (
-        <div className="space-y-2">
-          {roster.map((e) => (
-            <button
-              key={e.id}
-              onClick={() => setPicked(e)}
-              className="w-full rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-right text-lg font-medium text-neutral-100 hover:border-brand-700"
-            >
-              {e.full_name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <p className="mt-6 text-center text-xs text-neutral-600">גרסה {APP_VERSION}</p>
+    <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-10 text-center">
+      <h1 className="text-2xl font-extrabold text-brand-500">אלכסנדר</h1>
+      <p className="mt-4 text-lg text-neutral-200">
+        כדי למלא זמינות, השתמש בקישור האישי שקיבלת בוואטסאפ.
+      </p>
+      <p className="mt-2 text-sm text-neutral-500">
+        לכל עובד יש קישור אישי משלו — כך אי אפשר למלא זמינות בשם מישהו אחר.
+      </p>
+      <p className="mt-8 text-xs text-neutral-600">גרסה {APP_VERSION}</p>
     </div>
   )
 }

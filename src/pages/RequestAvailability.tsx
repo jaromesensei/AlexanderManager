@@ -1,39 +1,27 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Share2, MessageCircle, Copy, Check } from 'lucide-react'
+import { ArrowRight, MessageCircle, Copy, Check } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import { addDays, toISODate } from '@/lib/scheduling'
-import { toWaNumber, waLink, shareText } from '@/lib/whatsapp'
+import { toWaNumber, waLink } from '@/lib/whatsapp'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
-
-const RESTAURANT = 'אלכסנדר'
 
 function dm(iso: string): string {
   const [, m, d] = iso.split('-')
   return `${d}/${m}`
 }
 
-/** בקשת זמינות מהעובדים לשבוע נבחר - הודעה קבוצתית + קישור אישי לכל עובד. */
+/** בקשת זמינות מהעובדים לשבוע נבחר - קישור אישי לכל עובד. */
 export function RequestAvailability() {
   const { from = '' } = useParams()
   const to = toISODate(addDays(new Date(from + 'T00:00:00'), 6))
   const { data: employees, isLoading } = useEmployees()
 
   const origin = window.location.origin
-  const groupLink = `${origin}/availability?week=${from}`
 
   const active = useMemo(() => (employees ?? []).filter((e) => e.active), [employees])
-
-  const groupMessage = [
-    `היי לכולם 👋`,
-    `נא למלא זמינות לשבוע ${dm(from)}–${dm(to)}:`,
-    groupLink,
-    ``,
-    `בוחרים את השם, מסמנים בוקר/ערב לכל יום ושולחים. אחרי שליחה ננעל 🙏`,
-    RESTAURANT,
-  ].join('\n')
 
   function personalLink(token: string): string {
     return `${origin}/availability/${token}?week=${from}`
@@ -69,10 +57,10 @@ export function RequestAvailability() {
         <Card className="py-10 text-center text-neutral-400">אין עובדים פעילים.</Card>
       ) : (
         <>
-          <ShareGeneral message={groupMessage} />
-
-          <h2 className="px-1 pt-2 font-semibold">שליחה אישית לכל עובד</h2>
-          <p className="px-1 text-xs text-neutral-500">כל קישור נעול לשבוע הזה בלבד.</p>
+          <h2 className="px-1 font-semibold">שליחה אישית לכל עובד</h2>
+          <p className="px-1 text-xs text-neutral-500">
+            כל עובד מקבל קישור אישי משלו, נעול לשבוע הזה בלבד.
+          </p>
           {active.map((e) => {
             const wa = toWaNumber(e.phone)
             const msg = personalMessage(e.full_name, e.avail_token)
@@ -101,30 +89,6 @@ export function RequestAvailability() {
         </>
       )}
     </div>
-  )
-}
-
-function ShareGeneral({ message }: { message: string }) {
-  const [status, setStatus] = useState<string | null>(null)
-  async function go() {
-    const res = await shareText(message)
-    setStatus(res === 'copied' ? 'הועתק ללוח ✓' : res === 'failed' ? 'נכשל' : null)
-  }
-  return (
-    <Card className="space-y-3">
-      <div>
-        <h2 className="font-semibold">הודעה קבוצתית</h2>
-        <p className="text-sm text-neutral-400">קישור אחד לכל הצוות — להדבקה בקבוצה</p>
-      </div>
-      <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-xl bg-neutral-950 p-3 text-xs text-neutral-300">
-        {message}
-      </pre>
-      <Button onClick={go} className="w-full">
-        <Share2 className="h-4 w-4" />
-        שתף / העתק
-      </Button>
-      {status && <p className="text-center text-sm text-green-400">{status}</p>}
-    </Card>
   )
 }
 
