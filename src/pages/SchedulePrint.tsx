@@ -12,6 +12,7 @@ import {
   shortTime,
 } from '@/lib/scheduling'
 import type { ShiftType } from '@/types/database'
+import { holidaysInRange } from '@/lib/holidays'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
 
 function dm(iso: string): string {
@@ -34,6 +35,7 @@ export function SchedulePrint() {
     () => Array.from({ length: 7 }, (_, i) => addDays(start, i)),
     [from]
   )
+  const holidays = useMemo(() => holidaysInRange(from, to), [from, to])
 
   // grid[iso][shift] = שיבוצים ממויינים
   const grid = useMemo(() => {
@@ -126,6 +128,11 @@ export function SchedulePrint() {
                   <div className="num mt-0.5 text-[11px] font-medium text-[#8a8a94]">
                     {dm(toISODate(d))}
                   </div>
+                  {holidays[toISODate(d)] && (
+                    <div className="mt-0.5 text-[10px] font-semibold text-[#b45309]">
+                      {holidays[toISODate(d)].title}
+                    </div>
+                  )}
                 </th>
               ))}
             </tr>

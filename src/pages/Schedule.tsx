@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Send,
   Printer,
+  Sparkles,
 } from 'lucide-react'
 import { useEmployees, type EmployeeWithRoles } from '@/lib/queries/employees'
 import { useRequirements } from '@/lib/queries/requirements'
@@ -44,10 +45,28 @@ import {
   DEFAULT_START,
 } from '@/lib/scheduling'
 import { formatDate, cn } from '@/lib/utils'
+import { holidaysInRange, type HolidayInfo } from '@/lib/holidays'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
+
+/** תגית חג/מועד על יום בסידור. */
+function HolidayBadge({ info }: { info: HolidayInfo }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
+        info.major
+          ? 'border-amber-700 bg-amber-950/40 font-semibold text-amber-300'
+          : 'border-amber-800/50 bg-amber-950/25 text-amber-400'
+      )}
+    >
+      <Sparkles className="h-3 w-3" />
+      {info.title}
+    </span>
+  )
+}
 
 export function Schedule() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
@@ -84,6 +103,8 @@ export function Schedule() {
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart]
   )
+
+  const holidays = useMemo(() => holidaysInRange(from, to), [from, to])
 
   const byDate = useMemo(() => {
     const map: Record<string, ShiftRow[]> = {}
@@ -174,6 +195,7 @@ export function Schedule() {
           weekAvail={weekAvail ?? []}
           employees={employees ?? []}
           weekStart={from}
+          holidays={holidays}
         />
       ) : isLoading ? (
         <ListSkeleton rows={7} />
@@ -185,9 +207,10 @@ export function Schedule() {
             const req = requiredForWeekday(i)
             return (
               <Card key={iso} className="space-y-2.5">
-                <div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
-                  <span className="mr-2 text-sm text-neutral-500">{formatDate(day)}</span>
+                  <span className="text-sm text-neutral-500">{formatDate(day)}</span>
+                  {holidays[iso] && <HolidayBadge info={holidays[iso]} />}
                 </div>
                 {SHIFTS.map((sh) => (
                   <ShiftSection
@@ -214,11 +237,13 @@ function AvailabilityBoard({
   weekAvail,
   employees,
   weekStart,
+  holidays,
 }: {
   days: Date[]
   weekAvail: WeekAvailRow[]
   employees: EmployeeWithRoles[]
   weekStart: string
+  holidays: Record<string, HolidayInfo>
 }) {
   const nameById: Record<string, string> = {}
   for (const e of employees) nameById[e.id] = e.full_name
@@ -277,9 +302,10 @@ function AvailabilityBoard({
         const iso = toISODate(day)
         return (
           <Card key={iso} className="space-y-2">
-            <div>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
-              <span className="mr-2 text-sm text-neutral-500">{formatDate(day)}</span>
+              <span className="text-sm text-neutral-500">{formatDate(day)}</span>
+              {holidays[iso] && <HolidayBadge info={holidays[iso]} />}
             </div>
             {SHIFTS.map((shift) => {
               const names = weekAvail
