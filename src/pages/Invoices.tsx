@@ -142,7 +142,7 @@ export function Invoices() {
                 </div>
                 <div className="flex items-center gap-2">
                   {inv.total_amount != null && (
-                    <span className="font-semibold text-brand-400">
+                    <span className="font-semibold text-accent">
                       {formatCurrency(inv.total_amount)}
                     </span>
                   )}

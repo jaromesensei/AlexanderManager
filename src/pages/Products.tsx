@@ -259,7 +259,7 @@ function ProductRow({
       </div>
 
       {cpb != null && baseUnit && (
-        <p className="text-sm text-brand-400">
+        <p className="text-sm text-accent">
           עלות ל{baseUnit}: {formatCurrency(cpb)}
         </p>
       )}

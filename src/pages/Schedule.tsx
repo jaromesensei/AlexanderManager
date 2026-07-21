@@ -507,7 +507,7 @@ function ShiftSection({
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-neutral-700 py-1.5 text-sm text-brand-400 hover:border-brand-600"
+          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-neutral-700 py-1.5 text-sm text-accent hover:border-brand-600"
         >
           <Plus className="h-4 w-4" />
           מלא משמרת

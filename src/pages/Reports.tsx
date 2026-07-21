@@ -130,7 +130,9 @@ export function Reports() {
         agorotToShekels(r.line_total),
         r.invoice_number ?? '',
       ])
-    downloadCsv(`alexander-הוצאות-${selKey}.csv`, headers, data)
+    // שורת סיכום בתחתית
+    data.push(['', '', '', '', '', '', 'סה"כ', agorotToShekels(total), ''])
+    downloadCsv(`alexander-expenses-${selKey}.csv`, headers, data)
   }
 
   const trendMax = Math.max(1, ...trend.map(([, v]) => v))

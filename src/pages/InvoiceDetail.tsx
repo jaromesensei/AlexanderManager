@@ -99,7 +99,7 @@ export function InvoiceDetail() {
                 </p>
               </div>
               {it.line_total != null && (
-                <span className="font-semibold text-brand-400">
+                <span className="font-semibold text-accent">
                   {formatCurrency(it.line_total)}
                 </span>
               )}
@@ -144,7 +144,7 @@ function Row({
         {icon}
         {label}
       </span>
-      <span className={bold ? 'font-semibold text-brand-400' : ''}>{value}</span>
+      <span className={bold ? 'font-semibold text-accent' : ''}>{value}</span>
     </div>
   )
 }
