@@ -385,6 +385,11 @@ function ShiftSection({
         role: emp.roles[0]?.role ?? 'waiter',
         start_time: defStart,
         end_time: null,
+        employee: {
+          id: emp.id,
+          full_name: emp.full_name,
+          hourly_rate: emp.hourly_rate,
+        },
       })
     }
   }
