@@ -75,33 +75,32 @@ export function Invoices() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Link to="/suppliers">
-          <Button size="sm" variant="secondary" className="w-full">
+          <Button variant="secondary" className="w-full">
             <Store className="h-4 w-4" />
             ספקים
           </Button>
         </Link>
         <Link to="/products">
-          <Button size="sm" variant="secondary" className="w-full">
+          <Button variant="secondary" className="w-full">
             <Package className="h-4 w-4" />
             מוצרים
           </Button>
         </Link>
         <Link to="/dishes">
-          <Button size="sm" variant="secondary" className="w-full">
+          <Button variant="secondary" className="w-full">
             <UtensilsCrossed className="h-4 w-4" />
             מנות
           </Button>
         </Link>
+        <Link to="/reports">
+          <Button variant="secondary" className="w-full">
+            <BarChart3 className="h-4 w-4" />
+            דוחות
+          </Button>
+        </Link>
       </div>
-
-      <Link to="/reports">
-        <Button variant="secondary" className="w-full">
-          <BarChart3 className="h-4 w-4" />
-          דוחות והוצאות
-        </Button>
-      </Link>
 
       {isLoading ? (
         <ListSkeleton />
