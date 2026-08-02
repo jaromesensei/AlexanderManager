@@ -88,14 +88,18 @@ export async function extractInvoice(path: string): Promise<ExtractedInvoice> {
     body: { path },
   })
   if (error) {
-    // חילוץ הודעת השגיאה האמיתית מגוף התשובה (במקום "non-2xx status code" כללי)
+    // חילוץ הסיבה האמיתית מגוף התשובה (במקום "non-2xx status code" כללי)
     const ctx = (error as { context?: Response }).context
-    if (ctx && typeof ctx.json === 'function') {
-      try {
-        const body = await ctx.json()
-        if (body?.error) throw new Error(body.error)
-      } catch (e) {
-        if (e instanceof Error && e.message) throw e
+    if (ctx && typeof ctx.text === 'function') {
+      const raw = await ctx.text().catch(() => '')
+      if (raw) {
+        let msg: string = raw
+        try {
+          msg = JSON.parse(raw)?.error ?? raw
+        } catch {
+          // גוף שאינו JSON (למשל שגיאת פלטפורמה) — נשאיר את הטקסט הגולמי
+        }
+        throw new Error(`(${ctx.status}) ${String(msg).slice(0, 300)}`)
       }
     }
     throw new Error(error.message)
