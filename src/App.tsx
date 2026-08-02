@@ -15,6 +15,9 @@ import { Suppliers } from '@/pages/Suppliers'
 import { Products } from '@/pages/Products'
 import { Dishes } from '@/pages/Dishes'
 import { Reports } from '@/pages/Reports'
+import { Orders } from '@/pages/Orders'
+import { OrderForm } from '@/pages/OrderForm'
+import { OrderReceive } from '@/pages/OrderReceive'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
@@ -113,6 +116,38 @@ export default function App() {
                     element={
                       <ProtectedRoute managerOnly>
                         <Reports />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/orders"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <Orders />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/orders/new"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <OrderForm />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/orders/:id/edit"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <OrderForm />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/orders/:id/receive"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <OrderReceive />
                       </ProtectedRoute>
                     }
                   />

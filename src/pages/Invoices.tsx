@@ -9,6 +9,7 @@ import {
   Package,
   UtensilsCrossed,
   BarChart3,
+  ClipboardList,
 } from 'lucide-react'
 import { useInvoices } from '@/lib/queries/invoices'
 import { useOpenAlerts, useAcknowledgeAlert } from '@/lib/queries/alerts'
@@ -74,6 +75,13 @@ export function Invoices() {
           </Button>
         </Link>
       </div>
+
+      <Link to="/orders">
+        <Button className="w-full">
+          <ClipboardList className="h-4 w-4" />
+          הזמנות רכש
+        </Button>
+      </Link>
 
       <div className="grid grid-cols-2 gap-2">
         <Link to="/suppliers">

@@ -37,6 +37,7 @@ export interface InvoiceInput {
   status: InvoiceStatus
   image_path: string | null
   notes: string | null
+  order_id?: string | null
   items: InvoiceItemInput[]
 }
 

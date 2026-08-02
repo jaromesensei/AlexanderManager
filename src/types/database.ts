@@ -113,7 +113,33 @@ export interface Invoice {
   status: InvoiceStatus
   raw_extraction: unknown | null
   notes: string | null
+  order_id: string | null
   created_by: string | null
+  created_at: string
+}
+
+export type OrderStatus = 'draft' | 'ordered' | 'received' | 'closed'
+
+export interface Order {
+  id: string
+  supplier_id: string | null
+  status: OrderStatus
+  order_date: string
+  expected_date: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string | null
+  name: string
+  quantity: number
+  unit: string | null
+  expected_unit_price: number | null
+  position: number
   created_at: string
 }
 
@@ -212,6 +238,8 @@ export interface Database {
       availability: TableShape<Availability>
       availability_exceptions: TableShape<AvailabilityException>
       shift_assignments: TableShape<ShiftAssignment>
+      orders: TableShape<Order>
+      order_items: TableShape<OrderItem>
     }
     Views: Record<string, never>
     Functions: {
