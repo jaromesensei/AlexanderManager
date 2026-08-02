@@ -10,7 +10,7 @@ import {
   tipPerHour,
   calcLine,
 } from '@/lib/queries/tips'
-import { formatCurrency, shekelsToAgorot, agorotToShekels } from '@/lib/utils'
+import { formatCurrency, shekelsToAgorot, agorotToShekels, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -44,7 +44,10 @@ export function TipsDayClose() {
   const save = useSaveTipDay()
   const del = useDeleteTipDay()
 
+  // מצב הזנה: 'total' = מזינים סך טיפים · 'perHour' = מזינים טיפ לשעה והמערכת מחשבת את הסך
+  const [mode, setMode] = useState<'total' | 'perHour'>('total')
   const [totalTips, setTotalTips] = useState('')
+  const [perHourInput, setPerHourInput] = useState('')
   const [notes, setNotes] = useState('')
   const [rows, setRows] = useState<Row[]>([emptyRow()])
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +58,9 @@ export function TipsDayClose() {
     if (hydratedFor.current === date) return
     hydratedFor.current = date
     if (day) {
+      setMode('total')
       setTotalTips(String(agorotToShekels(day.total_tips)))
+      setPerHourInput('')
       setNotes(day.notes ?? '')
       setRows(
         day.entries.length
@@ -66,7 +71,9 @@ export function TipsDayClose() {
           : [emptyRow()]
       )
     } else {
+      setMode('total')
       setTotalTips('')
+      setPerHourInput('')
       setNotes('')
       setRows([emptyRow()])
     }
@@ -81,9 +88,16 @@ export function TipsDayClose() {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
   }
 
-  const totalTipsAgorot = totalTips ? shekelsToAgorot(parseFloat(totalTips)) : 0
   const totalHours = rows.reduce((s, r) => s + (parseFloat(r.hours) || 0), 0)
-  const tph = tipPerHour(totalTipsAgorot, totalHours)
+  // לפי מצב ההזנה: או שהסך ידוע וממנו נגזר טיפ/שעה, או שטיפ/שעה ידוע וממנו נגזר הסך.
+  const perHourAgorot = perHourInput ? shekelsToAgorot(parseFloat(perHourInput)) : 0
+  const totalTipsAgorot =
+    mode === 'total'
+      ? totalTips
+        ? shekelsToAgorot(parseFloat(totalTips))
+        : 0
+      : Math.round(perHourAgorot * totalHours)
+  const tph = mode === 'total' ? tipPerHour(totalTipsAgorot, totalHours) : perHourAgorot
   const topped = totalHours > 0 && tph < minWage
 
   const payout = useMemo(() => {
@@ -149,14 +163,61 @@ export function TipsDayClose() {
           onChange={(e) => setDate(e.target.value)}
           dir="ltr"
         />
-        <Input
-          label="סך הטיפים של היום (₪)"
-          value={totalTips}
-          onChange={(e) => setTotalTips(e.target.value)}
-          inputMode="decimal"
-          dir="ltr"
-          placeholder="מזומן + אשראי יחד"
-        />
+        {/* מתג מצב הזנה */}
+        <div>
+          <span className="mb-1 block text-sm text-neutral-400">אופן הזנת הטיפים</span>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-800/60 p-1">
+            <button
+              type="button"
+              onClick={() => setMode('total')}
+              className={cn(
+                'rounded-lg py-2 text-sm font-medium transition-colors',
+                mode === 'total'
+                  ? 'bg-brand-600 text-white'
+                  : 'text-neutral-300 hover:text-white'
+              )}
+            >
+              סך טיפים
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('perHour')}
+              className={cn(
+                'rounded-lg py-2 text-sm font-medium transition-colors',
+                mode === 'perHour'
+                  ? 'bg-brand-600 text-white'
+                  : 'text-neutral-300 hover:text-white'
+              )}
+            >
+              טיפ לשעה
+            </button>
+          </div>
+        </div>
+
+        {mode === 'total' ? (
+          <Input
+            label="סך הטיפים של היום (₪)"
+            value={totalTips}
+            onChange={(e) => setTotalTips(e.target.value)}
+            inputMode="decimal"
+            dir="ltr"
+            placeholder="מזומן + אשראי יחד"
+          />
+        ) : (
+          <div>
+            <Input
+              label="טיפ לשעה (₪)"
+              value={perHourInput}
+              onChange={(e) => setPerHourInput(e.target.value)}
+              inputMode="decimal"
+              dir="ltr"
+              placeholder="למשל 45"
+            />
+            <p className="mt-1 text-xs text-neutral-500">
+              הסך יחושב אוטומטית לפי השעות שתזין למטה.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* משתתפים */}
@@ -245,6 +306,12 @@ export function TipsDayClose() {
             טיפ לשעה
           </span>
           <span className="num font-semibold">{formatCurrency(Math.round(tph))}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-neutral-300">
+            סך טיפים{mode === 'perHour' && ' (מחושב)'}
+          </span>
+          <span className="num font-semibold">{formatCurrency(totalTipsAgorot)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-neutral-300">סה"כ שעות</span>
