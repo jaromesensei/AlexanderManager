@@ -7,9 +7,17 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle2,
+  Camera,
+  Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { useOrder, useSetOrderStatus } from '@/lib/queries/orders'
 import { useCreateInvoice, type InvoiceItemInput } from '@/lib/queries/invoices'
+import {
+  uploadInvoiceImage,
+  extractInvoice,
+  type ExtractedInvoice,
+} from '@/lib/queries/storage'
 import { formatCurrency, shekelsToAgorot, agorotToShekels, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -22,6 +30,23 @@ const PRICE_THRESHOLD = 0.05
 function todayIso(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// נירמול שם מוצר להשוואה (רווחים, אותיות)
+function normalizeName(s: string): string {
+  return s.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+// ציון התאמה בין שם בהזמנה לשם בתעודה: 3=זהה, 2=הכלה, 1=מילה משותפת
+function matchScore(a: string, b: string): number {
+  const na = normalizeName(a)
+  const nb = normalizeName(b)
+  if (!na || !nb) return 0
+  if (na === nb) return 3
+  if (na.includes(nb) || nb.includes(na)) return 2
+  const tokensA = new Set(na.split(' ').filter((t) => t.length > 1))
+  const shared = nb.split(' ').filter((t) => t.length > 1 && tokensA.has(t)).length
+  return shared > 0 ? 1 : 0
 }
 
 interface Line {
@@ -51,6 +76,9 @@ export function OrderReceive() {
 
   const [lines, setLines] = useState<Line[]>([])
   const [extras, setExtras] = useState<Extra[]>([])
+  const [imagePath, setImagePath] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [scanNote, setScanNote] = useState<string | null>(null)
   const hydrated = useRef(false)
 
   useEffect(() => {
@@ -77,6 +105,74 @@ export function OrderReceive() {
   }
   function setExtra(i: number, patch: Partial<Extra>) {
     setExtras((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
+  }
+
+  // התאמת פריטי התעודה שחולצו מול שורות ההזמנה
+  function applyExtraction(ex: ExtractedInvoice) {
+    const items = ex.items ?? []
+    const used = new Set<number>()
+    let matched = 0
+
+    const nextLines = lines.map((l) => {
+      let bestIdx = -1
+      let bestScore = 0
+      items.forEach((it, idx) => {
+        if (used.has(idx)) return
+        const score = matchScore(l.name, it.name)
+        if (score > bestScore) {
+          bestScore = score
+          bestIdx = idx
+        }
+      })
+      if (bestIdx >= 0 && bestScore > 0) {
+        used.add(bestIdx)
+        matched++
+        const it = items[bestIdx]
+        return {
+          ...l,
+          received: it.quantity ? String(it.quantity) : l.received,
+          price: it.unit_price ? String(it.unit_price) : l.price,
+        }
+      }
+      // לא זוהה בתעודה — מסומן כלא סופק לבדיקת המנהל
+      return { ...l, received: '0' }
+    })
+
+    const newExtras: Extra[] = []
+    items.forEach((it, idx) => {
+      if (used.has(idx)) return
+      if (!it.name?.trim()) return
+      newExtras.push({
+        name: it.name.trim(),
+        quantity: it.quantity ? String(it.quantity) : '',
+        unit: it.unit ?? '',
+        price: it.unit_price ? String(it.unit_price) : '',
+      })
+    })
+
+    setLines(nextLines)
+    if (newExtras.length) setExtras((prev) => [...prev, ...newExtras])
+
+    const parts = [`זוהו ${items.length} פריטים`, `${matched} הותאמו להזמנה`]
+    if (newExtras.length) parts.push(`${newExtras.length} לא הוזמנו`)
+    setScanNote(parts.join(' · ') + '. בדוק והתאם היכן שצריך.')
+  }
+
+  async function handleDeliveryNote(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setScanning(true)
+    setScanNote(null)
+    try {
+      const path = await uploadInvoiceImage(file)
+      setImagePath(path)
+      const ex = await extractInvoice(path)
+      applyExtraction(ex)
+    } catch (err) {
+      toast.error('החילוץ נכשל: ' + (err as Error).message)
+    } finally {
+      setScanning(false)
+    }
   }
 
   // אי-התאמות לכל שורה (לתצוגה ולסיכום)
@@ -169,7 +265,7 @@ export function OrderReceive() {
       invoice_date: todayIso(),
       total_amount: total,
       status: 'confirmed',
-      image_path: null,
+      image_path: imagePath,
       notes: note,
       order_id: order.id,
       items,
@@ -200,6 +296,38 @@ export function OrderReceive() {
       <p className="text-sm text-neutral-400">
         {order.supplier?.name ?? 'ללא ספק'} · הצלב מול תעודת המשלוח והתאם היכן ששונה.
       </p>
+
+      {/* צילום תעודת משלוח → מילוי אוטומטי */}
+      <Card className="space-y-3">
+        <label
+          className={cn(
+            'flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-700 py-4 text-neutral-300',
+            'hover:border-brand-600 hover:text-white',
+            scanning && 'pointer-events-none opacity-60'
+          )}
+        >
+          {scanning ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Camera className="h-5 w-5" />
+          )}
+          {scanning ? 'מחלץ מהתעודה...' : 'צלם תעודת משלוח ומלא אוטומטית'}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleDeliveryNote}
+            disabled={scanning}
+          />
+        </label>
+        {scanNote && (
+          <p className="flex items-start gap-2 rounded-lg bg-brand-950/40 px-3 py-2 text-sm text-brand-200">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+            {scanNote}
+          </p>
+        )}
+      </Card>
 
       {/* סיכום אי-התאמות */}
       {issues.length === 0 ? (
