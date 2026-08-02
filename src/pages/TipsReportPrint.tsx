@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, Printer } from 'lucide-react'
-import { useMinWage, useTipReport, aggregateReport } from '@/lib/queries/tips'
-import { formatCurrency } from '@/lib/utils'
+import { useMinWage, useTipReport, aggregateReport, isSaturday } from '@/lib/queries/tips'
+import { formatCurrency, formatAgorot } from '@/lib/utils'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
 
 function dmy(isoDate: string): string {
@@ -100,67 +100,93 @@ export function TipsReportPrint() {
               <h2 className="text-2xl font-extrabold">{e.name}</h2>
               <span className="text-sm text-[#71717a]">
                 {e.days} ימי עבודה · <span className="num">{e.hours}</span> שעות
+                {e.shabbatHours > 0 && (
+                  <>
+                    {' '}
+                    · מזה שבת <span className="num">{e.shabbatHours}</span>
+                  </>
+                )}
               </span>
             </div>
 
             {/* טבלת ימים */}
-            <table className="mt-3 w-full border-collapse text-[13px]">
+            <table className="mt-3 w-full table-fixed border-collapse text-[13px]">
+              <colgroup>
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '17%' }} />
+              </colgroup>
               <thead>
-                <tr className="bg-[#f8f8fb] text-[11px] uppercase tracking-wider text-[#a1a1aa]">
-                  <th className="border-b border-[#e5e7eb] p-2 text-right font-semibold">
-                    תאריך
-                  </th>
-                  <th className="border-b border-[#e5e7eb] p-2 text-right font-semibold">
-                    יום
-                  </th>
-                  <th className="border-b border-[#e5e7eb] p-2 text-center font-semibold">
-                    שעות
-                  </th>
-                  <th className="border-b border-[#e5e7eb] p-2 text-center font-semibold">
-                    טיפ לשעה
-                  </th>
-                  <th className="border-b border-[#e5e7eb] p-2 text-center font-semibold">
-                    טיפים
-                  </th>
-                  <th className="border-b border-[#e5e7eb] p-2 text-center font-semibold">
-                    השלמה
-                  </th>
-                  <th className="border-b border-[#e5e7eb] p-2 text-left font-semibold">
-                    סה"כ ליום
-                  </th>
+                <tr className="bg-[#f1f1f4] text-[11px] font-semibold text-[#52525b]">
+                  <th className="border border-[#e5e7eb] p-2 text-right">תאריך</th>
+                  <th className="border border-[#e5e7eb] p-2 text-right">יום</th>
+                  <th className="border border-[#e5e7eb] p-2 text-right">שעות</th>
+                  <th className="border border-[#e5e7eb] p-2 text-right">טיפ/שעה ₪</th>
+                  <th className="border border-[#e5e7eb] p-2 text-right">טיפים ₪</th>
+                  <th className="border border-[#e5e7eb] p-2 text-right">השלמה ₪</th>
+                  <th className="border border-[#e5e7eb] p-2 text-right">סה"כ ₪</th>
                 </tr>
               </thead>
               <tbody>
-                {e.lines.map((l, i) => (
-                  <tr key={i} className="border-b border-[#eef0f2]">
-                    <td className="num p-2 text-right">{dmy(l.date)}</td>
-                    <td className="p-2 text-right text-[#52525b]">{weekday(l.date)}</td>
-                    <td className="num p-2 text-center">{l.hours}</td>
-                    <td className="num p-2 text-center text-[#52525b]">
-                      {formatCurrency(Math.round(l.tph))}
-                    </td>
-                    <td className="num p-2 text-center">{formatCurrency(l.tips)}</td>
-                    <td className="num p-2 text-center text-[#b45309]">
-                      {l.topUp > 0 ? formatCurrency(l.topUp) : '—'}
-                    </td>
-                    <td className="num p-2 text-left font-semibold">
-                      {formatCurrency(l.total)}
-                    </td>
-                  </tr>
-                ))}
+                {e.lines.map((l, i) => {
+                  const sat = isSaturday(l.date)
+                  return (
+                    <tr key={i} style={{ background: sat ? '#fff7ed' : '#fff' }}>
+                      <td className="num border border-[#eef0f2] p-2 text-right">
+                        {dmy(l.date)}
+                      </td>
+                      <td className="border border-[#eef0f2] p-2 text-right text-[#52525b]">
+                        {weekday(l.date)}
+                        {sat && (
+                          <span className="mr-1 rounded bg-[#fed7aa] px-1 text-[9px] font-bold text-[#9a3412]">
+                            שבת
+                          </span>
+                        )}
+                      </td>
+                      <td className="num border border-[#eef0f2] p-2 text-right">
+                        {l.hours}
+                      </td>
+                      <td className="num border border-[#eef0f2] p-2 text-right text-[#52525b]">
+                        {formatAgorot(Math.round(l.tph))}
+                      </td>
+                      <td className="num border border-[#eef0f2] p-2 text-right">
+                        {formatAgorot(l.tips)}
+                      </td>
+                      <td className="num border border-[#eef0f2] p-2 text-right text-[#b45309]">
+                        {l.topUp > 0 ? formatAgorot(l.topUp) : '—'}
+                      </td>
+                      <td className="num border border-[#eef0f2] p-2 text-right font-semibold">
+                        {formatAgorot(l.total)}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-[#4338ca] bg-[#f8f8fb] font-bold">
-                  <td className="p-2 text-right" colSpan={2}>
+                <tr className="bg-[#eef2ff] font-bold">
+                  <td
+                    className="border border-[#c7d2fe] p-2 text-right text-[#4338ca]"
+                    colSpan={2}
+                  >
                     סה"כ
                   </td>
-                  <td className="num p-2 text-center">{e.hours}</td>
-                  <td className="p-2"></td>
-                  <td className="num p-2 text-center">{formatCurrency(e.tips)}</td>
-                  <td className="num p-2 text-center text-[#b45309]">
-                    {formatCurrency(e.topUp)}
+                  <td className="num border border-[#c7d2fe] p-2 text-right">
+                    {e.hours}
                   </td>
-                  <td className="num p-2 text-left">{formatCurrency(e.total)}</td>
+                  <td className="border border-[#c7d2fe] p-2"></td>
+                  <td className="num border border-[#c7d2fe] p-2 text-right">
+                    {formatAgorot(e.tips)}
+                  </td>
+                  <td className="num border border-[#c7d2fe] p-2 text-right text-[#b45309]">
+                    {formatAgorot(e.topUp)}
+                  </td>
+                  <td className="num border border-[#c7d2fe] p-2 text-right">
+                    {formatAgorot(e.total)}
+                  </td>
                 </tr>
               </tfoot>
             </table>

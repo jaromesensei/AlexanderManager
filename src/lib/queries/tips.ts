@@ -255,10 +255,17 @@ export interface ReportEmp {
   name: string
   days: number
   hours: number
+  shabbatHours: number // שעות שבת (יום שבת) מתוך סך השעות
   tips: number
   topUp: number
   total: number
   lines: ReportDayLine[]
+}
+
+/** האם התאריך חל בשבת (יום 6). */
+export function isSaturday(isoDate: string): boolean {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return new Date(y, m - 1, d).getDay() === 6
 }
 export interface ReportTotals {
   hours: number
@@ -288,6 +295,7 @@ export function aggregateReport(
           name: e.employee.full_name,
           days: 0,
           hours: 0,
+          shabbatHours: 0,
           tips: 0,
           topUp: 0,
           total: 0,
@@ -297,6 +305,7 @@ export function aggregateReport(
       }
       agg.days += 1
       agg.hours += h
+      if (isSaturday(day.work_date)) agg.shabbatHours += h
       agg.tips += line.tips
       agg.topUp += line.topUp
       agg.total += line.total

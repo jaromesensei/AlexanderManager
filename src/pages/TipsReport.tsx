@@ -84,7 +84,7 @@ export function TipsReport() {
       data.push([
         `${e.name} — סה"כ`,
         `${e.days} ימים`,
-        '',
+        e.shabbatHours > 0 ? `שבת ${e.shabbatHours}` : '',
         e.hours,
         '',
         agorotToShekels(e.tips),
@@ -188,6 +188,12 @@ export function TipsReport() {
                       <p className="font-semibold">{e.name}</p>
                       <p className="text-xs text-neutral-500">
                         {e.days} ימים · <span className="num">{e.hours}</span> שעות
+                        {e.shabbatHours > 0 && (
+                          <>
+                            {' '}
+                            · שבת <span className="num">{e.shabbatHours}</span> ש'
+                          </>
+                        )}
                         {e.topUp > 0 && (
                           <span className="text-amber-400">
                             {' '}
