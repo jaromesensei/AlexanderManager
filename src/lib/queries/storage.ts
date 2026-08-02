@@ -2,16 +2,52 @@ import { supabase } from '@/lib/supabase'
 
 const BUCKET = 'invoices'
 
-/** מעלה תמונת חשבונית ל-Storage ומחזיר את הנתיב שנשמר. */
+// גודל צלע מקסימלי אחרי דחיסה — מספיק לקריאות טקסט, קל לשליחה ל-AI.
+const MAX_EDGE = 1600
+
+/**
+ * דוחס תמונה: מקטין ל-MAX_EDGE ומייצא JPEG. מקטין דרמטית את גודל
+ * הקובץ (צילום טלפון ~4MB → ~300KB) — מהיר ואמין יותר מול Claude,
+ * ומונע כשלי 502 שנגרמים מבקשה כבדה. אם משהו נכשל — מחזיר את הקובץ המקורי.
+ */
+async function compressImage(file: File): Promise<{ blob: Blob; isJpeg: boolean }> {
+  if (!file.type.startsWith('image/')) return { blob: file, isJpeg: false }
+  try {
+    const bitmap = await createImageBitmap(file)
+    let { width, height } = bitmap
+    if (width > MAX_EDGE || height > MAX_EDGE) {
+      const scale = MAX_EDGE / Math.max(width, height)
+      width = Math.round(width * scale)
+      height = Math.round(height * scale)
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return { blob: file, isJpeg: false }
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.85)
+    )
+    if (!blob) return { blob: file, isJpeg: false }
+    return { blob, isJpeg: true }
+  } catch {
+    return { blob: file, isJpeg: false }
+  }
+}
+
+/** מעלה תמונת חשבונית ל-Storage (אחרי דחיסה) ומחזיר את הנתיב שנשמר. */
 export async function uploadInvoiceImage(file: File): Promise<string> {
-  const ext = file.name.split('.').pop() ?? 'jpg'
+  const { blob, isJpeg } = await compressImage(file)
+  const ext = isJpeg ? 'jpg' : (file.name.split('.').pop() ?? 'jpg')
   // שם קובץ ייחודי לפי זמן + אקראי (אין תלות במזהה משתמש)
   const rand = Math.random().toString(36).slice(2, 10)
   const path = `${new Date().getFullYear()}/${Date.now()}-${rand}.${ext}`
 
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
     cacheControl: '3600',
     upsert: false,
+    contentType: isJpeg ? 'image/jpeg' : file.type,
   })
   if (error) throw error
   return path

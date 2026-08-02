@@ -104,37 +104,55 @@ Deno.serve(async (req) => {
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     const base64 = btoa(binary)
 
-    // קריאה ל-Claude עם structured outputs
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 8000,
-        output_config: { format: { type: 'json_schema', schema: SCHEMA } },
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: mediaTypeFor(path), data: base64 },
-              },
-              { type: 'text', text: PROMPT },
-            ],
-          },
-        ],
-      }),
+    // קריאה ל-Claude עם structured outputs (עם ניסיון חוזר על שגיאות שער)
+    const payload = JSON.stringify({
+      model: MODEL,
+      max_tokens: 8000,
+      output_config: { format: { type: 'json_schema', schema: SCHEMA } },
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mediaTypeFor(path), data: base64 },
+            },
+            { type: 'text', text: PROMPT },
+          ],
+        },
+      ],
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      console.error('Anthropic error:', res.status, errText)
-      return json({ error: 'החילוץ נכשל מול Claude' }, 502)
+    let res: Response | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: payload,
+      })
+      if (res.ok) break
+      // 502/503/504/529 = תקלת שער/עומס זמנית — נסה שוב אחרי המתנה קצרה
+      if ([502, 503, 504, 529].includes(res.status) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)))
+        continue
+      }
+      break
+    }
+
+    if (!res || !res.ok) {
+      const errText = res ? await res.text() : 'אין תשובה'
+      console.error('Anthropic error:', res?.status, errText)
+      let detail = errText
+      try {
+        detail = JSON.parse(errText)?.error?.message ?? errText
+      } catch (_) {
+        detail = errText.slice(0, 200)
+      }
+      return json({ error: `Claude (${res?.status ?? '—'}): ${detail}` }, 502)
     }
 
     const data = await res.json()
