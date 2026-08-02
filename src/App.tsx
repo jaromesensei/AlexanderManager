@@ -18,6 +18,9 @@ import { Reports } from '@/pages/Reports'
 import { Orders } from '@/pages/Orders'
 import { OrderForm } from '@/pages/OrderForm'
 import { OrderReceive } from '@/pages/OrderReceive'
+import { Tips } from '@/pages/Tips'
+import { TipsDayClose } from '@/pages/TipsDayClose'
+import { TipsReport } from '@/pages/TipsReport'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
@@ -148,6 +151,30 @@ export default function App() {
                     element={
                       <ProtectedRoute managerOnly>
                         <OrderReceive />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tips"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <Tips />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tips/close"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <TipsDayClose />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/tips/report"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <TipsReport />
                       </ProtectedRoute>
                     }
                   />

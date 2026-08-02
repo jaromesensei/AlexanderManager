@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   FileText,
   CheckCircle2,
+  Coins,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOpenAlerts } from '@/lib/queries/alerts'
@@ -51,6 +52,14 @@ export function Home() {
           title="סידורי עבודה"
           subtitle="משמרות ואיוש עמדות"
         />
+        {isManager && (
+          <ModuleTile
+            to="/tips"
+            icon={Coins}
+            title="טיפים ושכר"
+            subtitle="סגירת יום ודוח לכל עובד"
+          />
+        )}
       </div>
 
       <p className="pt-2 text-center text-xs text-neutral-600">גרסה {APP_VERSION}</p>

@@ -143,6 +143,30 @@ export interface OrderItem {
   created_at: string
 }
 
+export interface AppSetting {
+  key: string
+  value: string
+  updated_at: string
+}
+
+export interface TipDay {
+  id: string
+  work_date: string
+  total_tips: number // אגורות
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface TipDayEntry {
+  id: string
+  tip_day_id: string
+  employee_id: string
+  hours: number
+  position: number
+  created_at: string
+}
+
 export interface InvoiceItem {
   id: string
   invoice_id: string
@@ -240,6 +264,9 @@ export interface Database {
       shift_assignments: TableShape<ShiftAssignment>
       orders: TableShape<Order>
       order_items: TableShape<OrderItem>
+      app_settings: TableShape<AppSetting>
+      tip_days: TableShape<TipDay>
+      tip_day_entries: TableShape<TipDayEntry>
     }
     Views: Record<string, never>
     Functions: {
