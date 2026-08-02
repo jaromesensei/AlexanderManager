@@ -51,7 +51,19 @@ export async function extractInvoice(path: string): Promise<ExtractedInvoice> {
   const { data, error } = await supabase.functions.invoke('extract-invoice', {
     body: { path },
   })
-  if (error) throw new Error(error.message)
+  if (error) {
+    // חילוץ הודעת השגיאה האמיתית מגוף התשובה (במקום "non-2xx status code" כללי)
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = await ctx.json()
+        if (body?.error) throw new Error(body.error)
+      } catch (e) {
+        if (e instanceof Error && e.message) throw e
+      }
+    }
+    throw new Error(error.message)
+  }
   if (data?.error) throw new Error(data.error)
   return data.extracted as ExtractedInvoice
 }
