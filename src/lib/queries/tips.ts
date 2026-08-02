@@ -240,3 +240,85 @@ export function useTipReport(from: string, to: string) {
     },
   })
 }
+
+// ── אגרגציה לדוח (משותף למסך ולהדפסה) ───────────────────────────────
+export interface ReportDayLine {
+  date: string
+  hours: number
+  tph: number
+  tips: number
+  topUp: number
+  total: number
+}
+export interface ReportEmp {
+  id: string
+  name: string
+  days: number
+  hours: number
+  tips: number
+  topUp: number
+  total: number
+  lines: ReportDayLine[]
+}
+export interface ReportTotals {
+  hours: number
+  tips: number
+  topUp: number
+  total: number
+}
+
+/** מקבץ את ימי הטיפים לפי עובד, עם פירוט יומי וסיכומים (הכל אגורות). */
+export function aggregateReport(
+  days: ReportDay[],
+  minWage: number
+): { emps: ReportEmp[]; totals: ReportTotals } {
+  const map = new Map<string, ReportEmp>()
+  for (const day of days) {
+    const dayHours = (day.entries ?? []).reduce((s, e) => s + Number(e.hours), 0)
+    const tph = tipPerHour(day.total_tips, dayHours)
+    for (const e of day.entries ?? []) {
+      if (!e.employee) continue
+      const h = Number(e.hours)
+      if (!(h > 0)) continue
+      const line = calcLine(day.total_tips, dayHours, h, minWage)
+      let agg = map.get(e.employee.id)
+      if (!agg) {
+        agg = {
+          id: e.employee.id,
+          name: e.employee.full_name,
+          days: 0,
+          hours: 0,
+          tips: 0,
+          topUp: 0,
+          total: 0,
+          lines: [],
+        }
+        map.set(e.employee.id, agg)
+      }
+      agg.days += 1
+      agg.hours += h
+      agg.tips += line.tips
+      agg.topUp += line.topUp
+      agg.total += line.total
+      agg.lines.push({
+        date: day.work_date,
+        hours: h,
+        tph,
+        tips: line.tips,
+        topUp: line.topUp,
+        total: line.total,
+      })
+    }
+  }
+  const emps = [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'he'))
+  const totals = emps.reduce(
+    (acc, e) => ({
+      hours: acc.hours + e.hours,
+      tips: acc.tips + e.tips,
+      topUp: acc.topUp + e.topUp,
+      total: acc.total + e.total,
+    }),
+    { hours: 0, tips: 0, topUp: 0, total: 0 }
+  )
+  return { emps, totals }
+}

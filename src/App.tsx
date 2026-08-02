@@ -21,6 +21,7 @@ import { OrderReceive } from '@/pages/OrderReceive'
 import { Tips } from '@/pages/Tips'
 import { TipsDayClose } from '@/pages/TipsDayClose'
 import { TipsReport } from '@/pages/TipsReport'
+import { TipsReportPrint } from '@/pages/TipsReportPrint'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
@@ -46,6 +47,14 @@ export default function App() {
                   element={
                     <ProtectedRoute managerOnly>
                       <SchedulePrint />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tips/report/print/:month"
+                  element={
+                    <ProtectedRoute managerOnly>
+                      <TipsReportPrint />
                     </ProtectedRoute>
                   }
                 />

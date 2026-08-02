@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   ChevronRight,
   ChevronLeft,
   Download,
+  Printer,
   Users,
   ChevronDown,
 } from 'lucide-react'
-import { useMinWage, useTipReport, calcLine, tipPerHour } from '@/lib/queries/tips'
+import { useMinWage, useTipReport, aggregateReport } from '@/lib/queries/tips'
 import { downloadCsv } from '@/lib/exportCsv'
 import { formatCurrency, agorotToShekels, cn } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
@@ -25,27 +26,13 @@ function dmy(isoDate: string): string {
   const [y, m, d] = isoDate.split('-')
   return `${d}/${m}/${y}`
 }
-
-interface DayLine {
-  date: string
-  hours: number
-  tph: number
-  tips: number
-  topUp: number
-  total: number
-}
-interface EmpAgg {
-  id: string
-  name: string
-  days: number
-  hours: number
-  tips: number
-  topUp: number
-  total: number
-  lines: DayLine[]
+function weekdayLetter(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  return ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'][new Date(y, m - 1, d).getDay()]
 }
 
 export function TipsReport() {
+  const navigate = useNavigate()
   const [month, setMonth] = useState(() => {
     const n = new Date()
     return new Date(n.getFullYear(), n.getMonth(), 1)
@@ -58,57 +45,10 @@ export function TipsReport() {
   const { data: days, isLoading } = useTipReport(from, to)
   const { data: minWage = 3540 } = useMinWage()
 
-  const { emps, totals } = useMemo(() => {
-    const map = new Map<string, EmpAgg>()
-    for (const day of days ?? []) {
-      const dayHours = (day.entries ?? []).reduce((s, e) => s + Number(e.hours), 0)
-      const tph = tipPerHour(day.total_tips, dayHours)
-      for (const e of day.entries ?? []) {
-        if (!e.employee) continue
-        const h = Number(e.hours)
-        if (!(h > 0)) continue
-        const line = calcLine(day.total_tips, dayHours, h, minWage)
-        let agg = map.get(e.employee.id)
-        if (!agg) {
-          agg = {
-            id: e.employee.id,
-            name: e.employee.full_name,
-            days: 0,
-            hours: 0,
-            tips: 0,
-            topUp: 0,
-            total: 0,
-            lines: [],
-          }
-          map.set(e.employee.id, agg)
-        }
-        agg.days += 1
-        agg.hours += h
-        agg.tips += line.tips
-        agg.topUp += line.topUp
-        agg.total += line.total
-        agg.lines.push({
-          date: day.work_date,
-          hours: h,
-          tph,
-          tips: line.tips,
-          topUp: line.topUp,
-          total: line.total,
-        })
-      }
-    }
-    const emps = [...map.values()].sort((a, b) => b.total - a.total)
-    const totals = emps.reduce(
-      (acc, e) => ({
-        hours: acc.hours + e.hours,
-        tips: acc.tips + e.tips,
-        topUp: acc.topUp + e.topUp,
-        total: acc.total + e.total,
-      }),
-      { hours: 0, tips: 0, topUp: 0, total: 0 }
-    )
-    return { emps, totals }
-  }, [days, minWage])
+  const { emps, totals } = useMemo(
+    () => aggregateReport(days ?? [], minWage),
+    [days, minWage]
+  )
 
   const monthLabel = new Intl.DateTimeFormat('he-IL', {
     month: 'long',
@@ -120,11 +60,12 @@ export function TipsReport() {
     const headers = [
       'עובד',
       'תאריך',
+      'יום',
       'שעות',
       'טיפ לשעה (₪)',
       'טיפים (₪)',
       'השלמה (₪)',
-      'סה"כ ליום (₪)',
+      'סה"כ לתשלום (₪)',
     ]
     const data: (string | number)[][] = []
     for (const e of emps) {
@@ -132,6 +73,7 @@ export function TipsReport() {
         data.push([
           e.name,
           dmy(l.date),
+          weekdayLetter(l.date),
           l.hours,
           agorotToShekels(Math.round(l.tph)),
           agorotToShekels(l.tips),
@@ -139,9 +81,9 @@ export function TipsReport() {
           agorotToShekels(l.total),
         ])
       }
-      // שורת סיכום לעובד
       data.push([
-        `${e.name} — סה"כ (${e.days} ימים)`,
+        `${e.name} — סה"כ`,
+        `${e.days} ימים`,
         '',
         e.hours,
         '',
@@ -149,10 +91,10 @@ export function TipsReport() {
         agorotToShekels(e.topUp),
         agorotToShekels(e.total),
       ])
-      data.push([])
     }
     data.push([
       'סה"כ הכל',
+      '',
       '',
       totals.hours,
       '',
@@ -197,12 +139,12 @@ export function TipsReport() {
         <EmptyState
           icon={Users}
           title="אין נתונים בחודש זה"
-          description="סגירות יום בחודש שנבחר יופיעו כאן, עם פירוט לכל עובד וייצוא לאקסל."
+          description="סגירות יום בחודש שנבחר יופיעו כאן, עם פירוט לכל עובד, ייצוא והדפסה."
         />
       ) : (
         <>
           {/* סיכום כללי */}
-          <Card className="space-y-2">
+          <Card className="space-y-3">
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-sm text-neutral-400">סה"כ לתשלום החודש</p>
@@ -217,10 +159,19 @@ export function TipsReport() {
                 </p>
               </div>
             </div>
-            <Button onClick={exportCsv} variant="secondary" className="w-full">
-              <Download className="h-4 w-4" />
-              ייצוא לאקסל (CSV)
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={() => navigate(`/tips/report/print/${selKey}`)}
+                className="w-full"
+              >
+                <Printer className="h-4 w-4" />
+                הדפסה מפורטת
+              </Button>
+              <Button onClick={exportCsv} variant="secondary" className="w-full">
+                <Download className="h-4 w-4" />
+                ייצוא לאקסל
+              </Button>
+            </div>
           </Card>
 
           {/* לכל עובד */}
