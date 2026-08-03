@@ -20,6 +20,14 @@ function json(body: unknown, status = 200) {
   })
 }
 
+function mediaTypeFor(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase()
+  if (ext === 'png') return 'image/png'
+  if (ext === 'webp') return 'image/webp'
+  if (ext === 'gif') return 'image/gif'
+  return 'image/jpeg'
+}
+
 interface EmployeeCtx {
   id: string
   name: string
@@ -47,6 +55,7 @@ ${emps || '(אין)'}
 היכולות שלך:
 1. לענות על שאלות לגבי טיפים, שעות, שכר ועובדים — לפי הנתונים שלמעלה.
 2. להציע "סגירת יום טיפים" כשמבקשים להזין / לסגור / לעדכן יום.
+3. אם צורפה תמונה של דף סגירות בכתב יד — חלץ ממנה לכל תאריך את העובדים, השעות (כניסה/יציאה) וסך הטיפים, והחזר proposal אחד לכל יום. אם התאריך לא ברור בדף, נסה להסיק מההקשר; אם אי אפשר — ציין זאת ב-note.
 
 כללים:
 - ענה תמיד בשדה reply בעברית, קצר וברור.
@@ -92,17 +101,54 @@ Deno.serve(async (req) => {
     const { data: isManager } = await userClient.rpc('is_manager')
     if (!isManager) return json({ error: 'נדרשת הרשאת מנהל' }, 403)
 
-    const { messages, context } = await req.json()
+    const { messages, context, image_path } = await req.json()
     if (!Array.isArray(messages)) return json({ error: 'חסרות הודעות' }, 400)
+
+    // הודעות בסיס (טקסט)
+    const apiMessages: { role: string; content: unknown }[] = (
+      messages as { role: string; content: string }[]
+    ).map((m) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }))
+
+    // אם צורפה תמונה — הורד אותה וצרף לתור המשתמש האחרון
+    if (image_path && typeof image_path === 'string') {
+      const adminClient = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      )
+      const { data: file, error: dlErr } = await adminClient.storage
+        .from('invoices')
+        .download(image_path)
+      if (dlErr || !file) return json({ error: 'הורדת התמונה נכשלה' }, 400)
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      const base64 = btoa(binary)
+
+      let lastUser = -1
+      for (let i = apiMessages.length - 1; i >= 0; i--) {
+        if (apiMessages[i].role === 'user') {
+          lastUser = i
+          break
+        }
+      }
+      const textContent = lastUser >= 0 ? String(apiMessages[lastUser].content) : ''
+      const imageBlock = {
+        type: 'image',
+        source: { type: 'base64', media_type: mediaTypeFor(image_path), data: base64 },
+      }
+      const content = [imageBlock, { type: 'text', text: textContent || 'חלץ מהדף.' }]
+      if (lastUser >= 0) apiMessages[lastUser] = { role: 'user', content }
+      else apiMessages.push({ role: 'user', content })
+    }
 
     const body = {
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: image_path ? 4000 : 2000,
       system: systemPrompt(context as Ctx),
-      messages: (messages as { role: string; content: string }[]).map((m) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      })),
+      messages: apiMessages,
     }
 
     let res: Response | null = null

@@ -34,13 +34,14 @@ export interface AssistantReply {
   proposals: AssistantProposal[]
 }
 
-/** שולח שיחה + הקשר לאלכס ומחזיר תשובה + הצעות. */
+/** שולח שיחה + הקשר לאלכס ומחזיר תשובה + הצעות. imagePath — צילום אופציונלי. */
 export async function askAssistant(
   messages: AssistantMessage[],
-  context: AssistantContext
+  context: AssistantContext,
+  imagePath?: string
 ): Promise<AssistantReply> {
   const { data, error } = await supabase.functions.invoke('assistant', {
-    body: { messages, context },
+    body: { messages, context, image_path: imagePath ?? null },
   })
   if (error) {
     const ctx = (error as { context?: Response }).context

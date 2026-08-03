@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, X, Send, Mic, Trash2, Check, Pencil, Undo2 } from 'lucide-react'
+import {
+  Sparkles,
+  X,
+  Send,
+  Mic,
+  Trash2,
+  Check,
+  Pencil,
+  Undo2,
+  Camera,
+} from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import {
   useMinWage,
@@ -9,6 +19,7 @@ import {
   useDeleteTipDay,
 } from '@/lib/queries/tips'
 import type { TipDayInput } from '@/lib/queries/tips'
+import { uploadInvoiceImage } from '@/lib/queries/storage'
 import {
   askAssistant,
   type AssistantProposal,
@@ -39,6 +50,7 @@ interface Msg {
   id: number
   role: 'user' | 'assistant' | 'system'
   content: string
+  image?: string // תצוגה מקדימה של צילום
   proposals?: AssistantProposal[]
   undo?: () => Promise<void>
 }
@@ -184,6 +196,49 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || loading) return
+    const preview = URL.createObjectURL(file)
+    const userMsg: Msg = {
+      id: idRef.current++,
+      role: 'user',
+      content: 'צילום דף סגירות — חלץ והצע לי סגירות',
+      image: preview,
+    }
+    const history = [...messages, userMsg]
+    setMessages(history)
+    setLoading(true)
+    try {
+      const path = await uploadInvoiceImage(file)
+      const convo: AssistantMessage[] = history
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+      const res = await askAssistant(convo, buildContext(), path)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: idRef.current++,
+          role: 'assistant',
+          content: res.reply || 'הנה מה שזיהיתי:',
+          proposals: res.proposals?.filter((p) => p.kind === 'close_tip_day'),
+        },
+      ])
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: idRef.current++,
+          role: 'assistant',
+          content: 'החילוץ נכשל: ' + (err as Error).message,
+        },
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function applyProposal(dayInput: TipDayInput) {
     // snapshot למצב הקודם (ל-Undo)
     const { data: existing } = await supabase
@@ -310,6 +365,13 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
                     : 'bg-neutral-800 text-neutral-100'
                 )}
               >
+                {m.image && (
+                  <img
+                    src={m.image}
+                    alt="צילום"
+                    className="mb-2 max-h-40 rounded-lg object-contain"
+                  />
+                )}
                 <p className="whitespace-pre-wrap">{m.content}</p>
               </div>
             )}
@@ -335,6 +397,20 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
       {/* קלט */}
       <div className="mx-auto w-full max-w-lg border-t border-neutral-800 p-3">
         <div className="flex items-end gap-2">
+          <label
+            aria-label="צלם דף סגירות"
+            className="shrink-0 cursor-pointer rounded-xl bg-neutral-800 p-3 text-neutral-300 transition hover:text-white"
+          >
+            <Camera className="h-5 w-5" />
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleImage}
+              disabled={loading}
+            />
+          </label>
           <button
             onClick={toggleMic}
             aria-label="הכתבה קולית"
