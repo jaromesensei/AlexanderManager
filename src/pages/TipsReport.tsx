@@ -64,7 +64,9 @@ export function TipsReport() {
       'שעות',
       'טיפ לשעה (₪)',
       'טיפים (₪)',
+      'בסיס מינימום (₪)',
       'השלמה (₪)',
+      'מעל הבסיס (₪)',
       'סה"כ לתשלום (₪)',
     ]
     const data: (string | number)[][] = []
@@ -77,7 +79,9 @@ export function TipsReport() {
           l.hours,
           agorotToShekels(Math.round(l.tph)),
           agorotToShekels(l.tips),
+          agorotToShekels(l.base),
           agorotToShekels(l.topUp),
+          agorotToShekels(l.over),
           agorotToShekels(l.total),
         ])
       }
@@ -88,7 +92,9 @@ export function TipsReport() {
         e.hours,
         '',
         agorotToShekels(e.tips),
+        agorotToShekels(e.base),
         agorotToShekels(e.topUp),
+        agorotToShekels(e.over),
         agorotToShekels(e.total),
       ])
     }
@@ -99,7 +105,9 @@ export function TipsReport() {
       totals.hours,
       '',
       agorotToShekels(totals.tips),
+      agorotToShekels(totals.base),
       agorotToShekels(totals.topUp),
+      agorotToShekels(totals.over),
       agorotToShekels(totals.total),
     ])
     downloadCsv(`alexander-tips-${selKey}.csv`, headers, data)
@@ -154,6 +162,9 @@ export function TipsReport() {
                 <p>
                   טיפים <span className="num">{formatCurrency(totals.tips)}</span>
                 </p>
+                <p className="text-green-400">
+                  מעל הבסיס <span className="num">{formatCurrency(totals.over)}</span>
+                </p>
                 <p className="text-amber-400">
                   השלמות <span className="num">{formatCurrency(totals.topUp)}</span>
                 </p>
@@ -193,6 +204,17 @@ export function TipsReport() {
                             {' '}
                             · שבת <span className="num">{e.shabbatHours}</span> ש'
                           </>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-xs">
+                        <span className="text-neutral-500">
+                          בסיס {formatCurrency(e.base)}
+                        </span>
+                        {e.over > 0 && (
+                          <span className="text-green-400">
+                            {' '}
+                            · מעל הבסיס +{formatCurrency(e.over)}
+                          </span>
                         )}
                         {e.topUp > 0 && (
                           <span className="text-amber-400">

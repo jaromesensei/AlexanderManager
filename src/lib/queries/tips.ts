@@ -14,14 +14,16 @@ export function tipPerHour(totalTips: number, totalHours: number): number {
 
 export interface LineResult {
   tips: number // חלק העובד מהקופה (אגורות)
+  base: number // הבסיס = שכר המינימום המגיע לפי השעות (אגורות)
   topUp: number // השלמה עד המינימום (אגורות)
+  over: number // בכמה הטיפים עברו את הבסיס (אגורות)
   total: number // סה"כ לתשלום לאותו יום (אגורות)
   topped: boolean // האם היה צורך בהשלמה
 }
 
 /**
- * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), השלמה למינימום, וסה"כ.
- * רצפת המינימום מפצלת שעות רגילות (100%) משעות שבת (150%).
+ * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), בסיס מינימום, השלמה,
+ * בכמה עבר את הבסיס, וסה"כ. הבסיס מפצל שעות רגילות (100%) משעות שבת (150%).
  */
 export function calcLine(
   totalTips: number,
@@ -34,10 +36,11 @@ export function calcLine(
   const tips = Math.round(tph * hours)
   const shabbat = Math.min(Math.max(0, shabbatHours), hours)
   const regular = Math.max(0, hours - shabbat)
-  const floor = Math.round(regular * minWage + shabbat * minWage * SHABBAT_MULTIPLIER)
-  const total = Math.max(tips, floor)
-  const topUp = Math.max(0, total - tips)
-  return { tips, topUp, total, topped: floor > tips }
+  const base = Math.round(regular * minWage + shabbat * minWage * SHABBAT_MULTIPLIER)
+  const total = Math.max(tips, base)
+  const topUp = Math.max(0, base - tips)
+  const over = Math.max(0, tips - base)
+  return { tips, base, topUp, over, total, topped: base > tips }
 }
 
 /** שעות השבת של שורה, לפי זמני התחלה/סיום (או נפילה חיננית: שבת=כל היום). */
@@ -287,7 +290,9 @@ export interface ReportDayLine {
   shabbatHours: number
   tph: number
   tips: number
+  base: number
   topUp: number
+  over: number
   total: number
 }
 export interface ReportEmp {
@@ -297,7 +302,9 @@ export interface ReportEmp {
   hours: number
   shabbatHours: number // שעות שבת (יום שבת) מתוך סך השעות
   tips: number
+  base: number // סך הבסיס (מינימום מגיע)
   topUp: number
+  over: number // בכמה הטיפים עברו את הבסיס
   total: number
   lines: ReportDayLine[]
 }
@@ -311,7 +318,9 @@ export function isSaturday(isoDate: string): boolean {
 export interface ReportTotals {
   hours: number
   tips: number
+  base: number
   topUp: number
+  over: number
   total: number
 }
 
@@ -339,7 +348,9 @@ export function aggregateReport(
           hours: 0,
           shabbatHours: 0,
           tips: 0,
+          base: 0,
           topUp: 0,
+          over: 0,
           total: 0,
           lines: [],
         }
@@ -349,7 +360,9 @@ export function aggregateReport(
       agg.hours += h
       agg.shabbatHours += shabbatH
       agg.tips += line.tips
+      agg.base += line.base
       agg.topUp += line.topUp
+      agg.over += line.over
       agg.total += line.total
       agg.lines.push({
         date: day.work_date,
@@ -357,7 +370,9 @@ export function aggregateReport(
         shabbatHours: shabbatH,
         tph,
         tips: line.tips,
+        base: line.base,
         topUp: line.topUp,
+        over: line.over,
         total: line.total,
       })
     }
@@ -367,10 +382,12 @@ export function aggregateReport(
     (acc, e) => ({
       hours: acc.hours + e.hours,
       tips: acc.tips + e.tips,
+      base: acc.base + e.base,
       topUp: acc.topUp + e.topUp,
+      over: acc.over + e.over,
       total: acc.total + e.total,
     }),
-    { hours: 0, tips: 0, topUp: 0, total: 0 }
+    { hours: 0, tips: 0, base: 0, topUp: 0, over: 0, total: 0 }
   )
   return { emps, totals }
 }

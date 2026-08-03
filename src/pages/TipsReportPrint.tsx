@@ -195,8 +195,28 @@ export function TipsReportPrint() {
               </tfoot>
             </table>
 
+            {/* בסיס / מעל הבסיס / השלמה */}
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-[#f4f4f5] px-2 py-2">
+                <div className="text-[10px] text-[#71717a]">בסיס מינימום</div>
+                <div className="num text-[15px] font-bold">{formatCurrency(e.base)}</div>
+              </div>
+              <div className="rounded-lg bg-[#ecfdf5] px-2 py-2">
+                <div className="text-[10px] text-[#047857]">מעל הבסיס</div>
+                <div className="num text-[15px] font-bold text-[#047857]">
+                  {e.over > 0 ? '+' + formatCurrency(e.over) : '—'}
+                </div>
+              </div>
+              <div className="rounded-lg bg-[#fffbeb] px-2 py-2">
+                <div className="text-[10px] text-[#b45309]">השלמה</div>
+                <div className="num text-[15px] font-bold text-[#b45309]">
+                  {e.topUp > 0 ? formatCurrency(e.topUp) : '—'}
+                </div>
+              </div>
+            </div>
+
             {/* סיכום לתשלום */}
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-[#eef2ff] px-4 py-3">
+            <div className="mt-2 flex items-center justify-between rounded-xl bg-[#eef2ff] px-4 py-3">
               <span className="font-semibold text-[#4338ca]">סה"כ לתשלום</span>
               <span className="num text-2xl font-extrabold text-[#4338ca]">
                 {formatCurrency(e.total)}
