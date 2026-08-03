@@ -1,0 +1,157 @@
+// Edge Function: "אלכס" — עוזר הניהול. מקבל שיחה + הקשר (עובדים, טיפים אחרונים),
+// שולח ל-Claude, ומחזיר תשובה בעברית + הצעות פעולה (proposals) לאישור בקליינט.
+// אלכס לא מבצע כלום — הוא רק מציע. הכתיבה נעשית בקליינט אחרי אישור המנהל.
+
+import { createClient } from 'jsr:@supabase/supabase-js@2'
+
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
+const MODEL = Deno.env.get('ASSISTANT_MODEL') ?? 'claude-opus-4-8'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+interface EmployeeCtx {
+  id: string
+  name: string
+}
+interface Ctx {
+  today: string
+  weekday: string
+  min_hourly_wage_agorot: number
+  employees: EmployeeCtx[]
+  recent_days: unknown[]
+}
+
+function systemPrompt(ctx: Ctx): string {
+  const wage = (ctx.min_hourly_wage_agorot / 100).toFixed(2)
+  const emps = (ctx.employees ?? []).map((e) => `- ${e.name} (id: ${e.id})`).join('\n')
+  return `אתה "אלכס", עוזר הניהול של מסעדת ההמבורגרים "אלכסנדר" בנהריה. אתה עוזר לבעלים (מנהל) בעברית, בקצרה וידידותית.
+
+היום: ${ctx.today} (${ctx.weekday}). שכר מינימום לשעה: ${wage} ש"ח (בשבת 150%).
+
+עובדים פעילים — השתמש אך ורק במזהים האלה, אל תמציא:
+${emps || '(אין)'}
+
+סגירות טיפים אחרונות (JSON, אגורות): ${JSON.stringify(ctx.recent_days ?? [])}
+
+היכולות שלך:
+1. לענות על שאלות לגבי טיפים, שעות, שכר ועובדים — לפי הנתונים שלמעלה.
+2. להציע "סגירת יום טיפים" כשמבקשים להזין / לסגור / לעדכן יום.
+
+כללים:
+- ענה תמיד בשדה reply בעברית, קצר וברור.
+- אם מבקשים לסגור/לעדכן יום, הוסף proposal אחד או יותר עם kind="close_tip_day":
+  - work_date בפורמט YYYY-MM-DD (פרש תאריכים יחסיים לפי היום).
+  - אם נתנו סך טיפים → total_tips (בשקלים). אם נתנו טיפ לשעה → per_hour (בשקלים). רק אחד מהם; השני null.
+  - לכל עובד entries עם: employee_id (מהרשימה), employee_name, start ו-end בפורמט HH:MM.
+  - אם שם עמום או לא קיים ברשימה — השאר employee_id="" והסבר ב-note.
+  - אם חסר מידע קריטי (תאריך/שעות) — אל תמציא. בקש הבהרה ב-reply, והשאר proposals ריק.
+- אל תמציא נתונים. אתה רק מציע — המנהל מאשר לפני כל שמירה.
+
+החזר אך ורק JSON תקין במבנה:
+{"reply": "טקסט", "proposals": [{"kind":"close_tip_day","work_date":"YYYY-MM-DD","total_tips":null,"per_hour":null,"entries":[{"employee_id":"","employee_name":"","start":"HH:MM","end":"HH:MM"}],"note":null}]}
+בלי טקסט מחוץ ל-JSON, בלי סימוני קוד. אם אין הצעות — proposals הוא [].`
+}
+
+function parseJson(text: string): unknown {
+  let t = text.trim()
+  if (t.startsWith('```')) {
+    t = t
+      .replace(/^```(?:json)?/i, '')
+      .replace(/```$/, '')
+      .trim()
+  }
+  const start = t.indexOf('{')
+  const end = t.lastIndexOf('}')
+  if (start >= 0 && end > start) t = t.slice(start, end + 1)
+  return JSON.parse(t)
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+
+    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: userData } = await userClient.auth.getUser()
+    if (!userData.user) return json({ error: 'לא מחובר' }, 401)
+    const { data: isManager } = await userClient.rpc('is_manager')
+    if (!isManager) return json({ error: 'נדרשת הרשאת מנהל' }, 403)
+
+    const { messages, context } = await req.json()
+    if (!Array.isArray(messages)) return json({ error: 'חסרות הודעות' }, 400)
+
+    const body = {
+      model: MODEL,
+      max_tokens: 2000,
+      system: systemPrompt(context as Ctx),
+      messages: (messages as { role: string; content: string }[]).map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+    }
+
+    let res: Response | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) break
+      if ([500, 502, 503, 504, 529].includes(res.status) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)))
+        continue
+      }
+      break
+    }
+
+    if (!res || !res.ok) {
+      const errText = res ? await res.text() : 'אין תשובה'
+      console.error('Anthropic error:', res?.status, errText)
+      let detail = errText
+      try {
+        detail = JSON.parse(errText)?.error?.message ?? errText
+      } catch (_) {
+        detail = errText.slice(0, 200)
+      }
+      return json({ error: `Claude (${res?.status ?? '—'}): ${detail}` }, 502)
+    }
+
+    const data = await res.json()
+    const textBlock = (data.content ?? []).find(
+      (b: { type: string }) => b.type === 'text'
+    )
+    if (!textBlock) return json({ error: 'אין תשובה מ-Claude' }, 502)
+
+    let parsed: { reply?: string; proposals?: unknown[] }
+    try {
+      parsed = parseJson(textBlock.text) as typeof parsed
+    } catch (_) {
+      // אם לא הצליח לפרסר — נחזיר את הטקסט כתשובה חופשית
+      return json({ reply: textBlock.text, proposals: [] })
+    }
+    return json({ reply: parsed.reply ?? '', proposals: parsed.proposals ?? [] })
+  } catch (err) {
+    console.error(err)
+    return json({ error: 'שגיאה: ' + (err as Error).message }, 500)
+  }
+})

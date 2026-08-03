@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Plus, Trash2, Check, Coins } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import {
@@ -25,6 +25,14 @@ interface Row {
   end: string // "HH:MM"
 }
 
+// טעינה מראש מהעוזר (אלכס)
+interface Prefill {
+  date: string
+  totalTips: number | null
+  perHour: number | null
+  rows: { employee_id: string; start: string; end: string }[]
+}
+
 function emptyRow(): Row {
   return { employee_id: '', start: '', end: '' }
 }
@@ -41,10 +49,12 @@ function fmtHours(n: number): string {
 
 export function TipsDayClose() {
   const [params] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const confirm = useConfirm()
 
-  const [date, setDate] = useState(params.get('date') || todayIso())
+  const prefill = (location.state as { prefill?: Prefill } | null)?.prefill
+  const [date, setDate] = useState(prefill?.date || params.get('date') || todayIso())
   const { data: employees } = useEmployees()
   const { data: minWage = 3540 } = useMinWage()
   const { data: day, isLoading } = useTipDayByDate(date)
@@ -58,6 +68,30 @@ export function TipsDayClose() {
   const [rows, setRows] = useState<Row[]>([emptyRow()])
   const [error, setError] = useState<string | null>(null)
   const hydratedFor = useRef<string | null>(null)
+  const prefillDone = useRef(false)
+
+  // טעינה מראש מהעוזר — גובר על טעינת היום הקיים
+  useEffect(() => {
+    if (!prefill || prefillDone.current) return
+    prefillDone.current = true
+    hydratedFor.current = prefill.date
+    if (prefill.perHour != null) {
+      setMode('perHour')
+      setPerHourInput(String(prefill.perHour))
+    } else if (prefill.totalTips != null) {
+      setMode('total')
+      setTotalTips(String(prefill.totalTips))
+    }
+    setRows(
+      prefill.rows.length
+        ? prefill.rows.map((r) => ({
+            employee_id: r.employee_id,
+            start: r.start,
+            end: r.end,
+          }))
+        : [emptyRow()]
+    )
+  }, [prefill])
 
   useEffect(() => {
     if (isLoading) return
