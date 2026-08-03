@@ -525,6 +525,65 @@ function ProposalCard({
   })
   const [applied, setApplied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [mergedCount, setMergedCount] = useState(0)
+  const mergeDone = useRef(false)
+
+  // מיזוג עם יום קיים: לא מוחקים עובדים קיימים — מוסיפים/מעדכנים על גביהם.
+  useEffect(() => {
+    if (mergeDone.current) return
+    mergeDone.current = true
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('tip_days')
+        .select(
+          'total_tips, entries:tip_day_entries(employee_id, start_time, end_time, position)'
+        )
+        .eq('work_date', proposal.work_date)
+        .maybeSingle()
+      if (cancelled || !data) return
+      const existing = data as unknown as {
+        total_tips: number
+        entries: {
+          employee_id: string
+          start_time: string | null
+          end_time: string | null
+          position: number
+        }[]
+      }
+      const map = new Map<string, PRow>()
+      for (const e of [...existing.entries].sort((a, b) => a.position - b.position)) {
+        map.set(e.employee_id, {
+          employee_id: e.employee_id,
+          start: e.start_time ? e.start_time.slice(0, 5) : '',
+          end: e.end_time ? e.end_time.slice(0, 5) : '',
+        })
+      }
+      const existingCount = map.size
+      // הצעות אלכס: מעדכנות עובד קיים או מוסיפות חדש
+      for (const p of proposal.entries) {
+        if (!p.employee_id) continue
+        map.set(p.employee_id, {
+          employee_id: p.employee_id,
+          start: p.start,
+          end: p.end,
+        })
+      }
+      const unresolved = proposal.entries
+        .filter((p) => !p.employee_id)
+        .map((p) => ({ employee_id: '', start: p.start, end: p.end }))
+      if (cancelled) return
+      setRows([...map.values(), ...unresolved])
+      setMergedCount(existingCount)
+      // אם אלכס לא ציין טיפים — שומרים את הסכום הקיים
+      if (proposal.total_tips == null && proposal.per_hour == null) {
+        setTips(String(agorotToShekels(existing.total_tips)))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const metrics = rows.map((r) => {
     const s = parseTimeToMinutes(r.start)
@@ -627,6 +686,12 @@ function ProposalCard({
       {proposal.note && (
         <p className="rounded-lg bg-amber-950/40 px-2 py-1 text-xs text-amber-300">
           {proposal.note}
+        </p>
+      )}
+
+      {mergedCount > 0 && (
+        <p className="rounded-lg bg-brand-950/40 px-2 py-1 text-xs text-brand-200">
+          מתווסף ליום קיים · {mergedCount} עובדים כבר סגורים נשמרים
         </p>
       )}
 
