@@ -15,37 +15,33 @@ export function tipPerHour(totalTips: number, totalHours: number): number {
 export interface LineResult {
   tips: number // חלק העובד מהקופה (אגורות)
   base: number // בסיס שכר המינימום לפי השעות (אגורות)
-  travel: number // נסיעות ליום (אגורות)
-  topUp: number // השלמה עד הרצפה (בסיס + נסיעות) (אגורות)
-  over: number // בכמה הטיפים עברו את הרצפה (אגורות)
-  total: number // סה"כ לתשלום לאותו יום (אגורות)
+  topUp: number // השלמה עד שכר המינימום (אגורות) — בלי נסיעות
+  over: number // בכמה הטיפים עברו את בסיס המינימום (אגורות)
+  total: number // חלק השכר ליום = max(טיפים, בסיס). נסיעות מתווספות בסיכום.
   topped: boolean // האם היה צורך בהשלמה
 }
 
 /**
- * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), בסיס מינימום, נסיעות,
- * השלמה, בכמה עבר את הרצפה, וסה"כ. הרצפה = בסיס מינימום (רגיל 100% + שבת 150%)
- * + נסיעות ליום. הטיפים צריכים לכסות את הרצפה; מה שמעליה = "מעל הבסיס".
+ * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), בסיס מינימום, השלמה,
+ * בכמה עבר את הבסיס, וחלק השכר. הבסיס = שכר מינימום (רגיל 100% + שבת 150%).
+ * נסיעות אינן חלק מחישוב היום — הן מתווספות רק בסיכום החודשי.
  */
 export function calcLine(
   totalTips: number,
   dayHours: number,
   hours: number,
   shabbatHours: number,
-  minWage: number,
-  travelPerDay: number
+  minWage: number
 ): LineResult {
   const tph = tipPerHour(totalTips, dayHours)
   const tips = Math.round(tph * hours)
   const shabbat = Math.min(Math.max(0, shabbatHours), hours)
   const regular = Math.max(0, hours - shabbat)
   const base = Math.round(regular * minWage + shabbat * minWage * SHABBAT_MULTIPLIER)
-  const travel = travelPerDay
-  const floor = base + travel
-  const total = Math.max(tips, floor)
-  const topUp = Math.max(0, floor - tips)
-  const over = Math.max(0, tips - floor)
-  return { tips, base, travel, topUp, over, total, topped: floor > tips }
+  const total = Math.max(tips, base)
+  const topUp = Math.max(0, base - tips)
+  const over = Math.max(0, tips - base)
+  return { tips, base, topUp, over, total, topped: base > tips }
 }
 
 /** שעות השבת של שורה, לפי זמני התחלה/סיום (או נפילה חיננית: שבת=כל היום). */
@@ -338,23 +334,22 @@ export interface ReportDayLine {
   tph: number
   tips: number
   base: number
-  travel: number
   topUp: number
   over: number
-  total: number
+  total: number // חלק השכר ליום (בלי נסיעות)
 }
 export interface ReportEmp {
   id: string
   name: string
   days: number
-  hours: number
-  shabbatHours: number // שעות שבת (יום שבת) מתוך סך השעות
+  hours: number // סך שעות
+  shabbatHours: number // מתוכן שעות שבת
   tips: number
   base: number // סך הבסיס (מינימום מגיע)
-  travel: number // סך דמי נסיעות (ימים × תעריף)
-  topUp: number
-  over: number // בכמה הטיפים עברו את הרצפה (בסיס + נסיעות)
-  total: number
+  travel: number // סך דמי נסיעות (ימים × תעריף) — נוסף בסיכום
+  topUp: number // סך השלמות (מול מינימום, בלי נסיעות)
+  over: number // בכמה הטיפים עברו את בסיס המינימום
+  total: number // סה"כ לתשלום = שכר + נסיעות
   lines: ReportDayLine[]
 }
 
@@ -374,7 +369,10 @@ export interface ReportTotals {
   total: number
 }
 
-/** מקבץ את ימי הטיפים לפי עובד, עם פירוט יומי וסיכומים (הכל אגורות). */
+/**
+ * מקבץ את ימי הטיפים לפי עובד, עם פירוט יומי וסיכומים (הכל אגורות).
+ * הנסיעות (ימים × תעריף) מתווספות רק בסיכום — לא בחישוב היומי/ההשלמה.
+ */
 export function aggregateReport(
   days: ReportDay[],
   minWage: number,
@@ -389,7 +387,7 @@ export function aggregateReport(
       const h = Number(e.hours)
       if (!(h > 0)) continue
       const shabbatH = entryShabbatHours(day.work_date, h, e.start_time, e.end_time)
-      const line = calcLine(day.total_tips, dayHours, h, shabbatH, minWage, travelPerDay)
+      const line = calcLine(day.total_tips, dayHours, h, shabbatH, minWage)
       let agg = map.get(e.employee.id)
       if (!agg) {
         agg = {
@@ -413,9 +411,7 @@ export function aggregateReport(
       agg.shabbatHours += shabbatH
       agg.tips += line.tips
       agg.base += line.base
-      agg.travel += line.travel
       agg.topUp += line.topUp
-      agg.over += line.over
       agg.total += line.total
       agg.lines.push({
         date: day.work_date,
@@ -424,7 +420,6 @@ export function aggregateReport(
         tph,
         tips: line.tips,
         base: line.base,
-        travel: line.travel,
         topUp: line.topUp,
         over: line.over,
         total: line.total,
@@ -432,6 +427,12 @@ export function aggregateReport(
     }
   }
   const emps = [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'he'))
+  // נסיעות בסיכום בלבד. "מעל הבסיס" = טיפים פחות בסיס מינימום פחות נסיעות.
+  // סה"כ לתשלום = חלק השכר (max(טיפים, בסיס) לפי יום); הנסיעות הן פירוק מתוכו.
+  for (const e of emps) {
+    e.travel = e.days * travelPerDay
+    e.over = Math.max(0, e.tips - e.base - e.travel)
+  }
   const totals = emps.reduce(
     (acc, e) => ({
       hours: acc.hours + e.hours,

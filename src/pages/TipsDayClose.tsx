@@ -4,7 +4,6 @@ import { ArrowRight, Plus, Trash2, Check, Coins } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
 import {
   useMinWage,
-  useTravelPerDay,
   useTipDayByDate,
   useSaveTipDay,
   useDeleteTipDay,
@@ -58,7 +57,6 @@ export function TipsDayClose() {
   const [date, setDate] = useState(prefill?.date || params.get('date') || todayIso())
   const { data: employees } = useEmployees()
   const { data: minWage = 3540 } = useMinWage()
-  const { data: travelPerDay = 1700 } = useTravelPerDay()
   const { data: day, isLoading } = useTipDayByDate(date)
   const save = useSaveTipDay()
   const del = useDeleteTipDay()
@@ -166,17 +164,10 @@ export function TipsDayClose() {
     rows.forEach((_, i) => {
       const { hours, shabbat } = metrics[i]
       if (hours <= 0) return
-      sum += calcLine(
-        totalTipsAgorot,
-        totalHours,
-        hours,
-        shabbat,
-        minWage,
-        travelPerDay
-      ).total
+      sum += calcLine(totalTipsAgorot, totalHours, hours, shabbat, minWage).total
     })
     return sum
-  }, [rows, metrics, totalTipsAgorot, totalHours, minWage, travelPerDay])
+  }, [rows, metrics, totalTipsAgorot, totalHours, minWage])
 
   async function onSave() {
     const entries = rows
@@ -305,14 +296,7 @@ export function TipsDayClose() {
           const m = metrics[i]
           const line =
             m.hours > 0
-              ? calcLine(
-                  totalTipsAgorot,
-                  totalHours,
-                  m.hours,
-                  m.shabbat,
-                  minWage,
-                  travelPerDay
-                )
+              ? calcLine(totalTipsAgorot, totalHours, m.hours, m.shabbat, minWage)
               : null
           return (
             <Card key={i} className="space-y-2">

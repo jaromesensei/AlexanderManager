@@ -61,7 +61,7 @@ export function Tips() {
     setEditTravel(false)
   }
 
-  const recent = (days ?? []).slice(0, 15)
+  const recent = days ?? []
 
   return (
     <div className="space-y-4">

@@ -35,6 +35,9 @@ function weekdayLetter(isoDate: string): string {
   const [y, m, d] = isoDate.split('-').map(Number)
   return ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'][new Date(y, m - 1, d).getDay()]
 }
+function fmtHours(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
+}
 
 export function TipsReport() {
   const navigate = useNavigate()
@@ -68,12 +71,13 @@ export function TipsReport() {
       'תאריך',
       'יום',
       'שעות',
+      'מזה שבת',
       'טיפ לשעה (₪)',
       'טיפים (₪)',
       'בסיס מינימום (₪)',
-      'נסיעות (₪)',
       'השלמה (₪)',
       'מעל הבסיס (₪)',
+      'נסיעות (₪)',
       'סה"כ לתשלום (₪)',
     ]
     const data: (string | number)[][] = []
@@ -84,40 +88,44 @@ export function TipsReport() {
           dmy(l.date),
           weekdayLetter(l.date),
           l.hours,
+          l.shabbatHours || '',
           agorotToShekels(Math.round(l.tph)),
           agorotToShekels(l.tips),
           agorotToShekels(l.base),
-          agorotToShekels(l.travel),
           agorotToShekels(l.topUp),
-          agorotToShekels(l.over),
+          '',
+          '',
           agorotToShekels(l.total),
         ])
       }
       data.push([
         `${e.name} — סה"כ`,
         `${e.days} ימים`,
-        e.shabbatHours > 0 ? `שבת ${e.shabbatHours}` : '',
+        '',
         e.hours,
+        e.shabbatHours || '',
         '',
         agorotToShekels(e.tips),
         agorotToShekels(e.base),
-        agorotToShekels(e.travel),
         agorotToShekels(e.topUp),
         agorotToShekels(e.over),
+        agorotToShekels(e.travel),
         agorotToShekels(e.total),
       ])
     }
+    const totalShabbat = emps.reduce((s, e) => s + e.shabbatHours, 0)
     data.push([
       'סה"כ הכל',
       '',
       '',
       totals.hours,
+      totalShabbat || '',
       '',
       agorotToShekels(totals.tips),
       agorotToShekels(totals.base),
-      agorotToShekels(totals.travel),
       agorotToShekels(totals.topUp),
       agorotToShekels(totals.over),
+      agorotToShekels(totals.travel),
       agorotToShekels(totals.total),
     ])
     downloadCsv(`alexander-tips-${selKey}.csv`, headers, data)
@@ -211,13 +219,10 @@ export function TipsReport() {
                     <div>
                       <p className="font-semibold">{e.name}</p>
                       <p className="text-xs text-neutral-500">
-                        {e.days} ימים · <span className="num">{e.hours}</span> שעות
-                        {e.shabbatHours > 0 && (
-                          <>
-                            {' '}
-                            · שבת <span className="num">{e.shabbatHours}</span> ש'
-                          </>
-                        )}
+                        {e.days} ימים · רגילות{' '}
+                        <span className="num">{fmtHours(e.hours - e.shabbatHours)}</span>{' '}
+                        · שבת <span className="num">{fmtHours(e.shabbatHours)}</span> ·
+                        סה"כ <span className="num">{fmtHours(e.hours)}</span> ש'
                       </p>
                       <p className="mt-0.5 text-xs">
                         <span className="text-neutral-500">

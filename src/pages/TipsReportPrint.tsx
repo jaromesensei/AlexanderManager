@@ -20,6 +20,9 @@ function weekday(isoDate: string): string {
   const names = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
   return names[new Date(y, m - 1, d).getDay()]
 }
+function fmtHours(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
+}
 
 export function TipsReportPrint() {
   const { month = '' } = useParams() // YYYY-MM
@@ -109,13 +112,10 @@ export function TipsReportPrint() {
             <div className="mt-4 flex items-baseline justify-between">
               <h2 className="text-2xl font-extrabold">{e.name}</h2>
               <span className="text-sm text-[#71717a]">
-                {e.days} ימי עבודה · <span className="num">{e.hours}</span> שעות
-                {e.shabbatHours > 0 && (
-                  <>
-                    {' '}
-                    · מזה שבת <span className="num">{e.shabbatHours}</span>
-                  </>
-                )}
+                {e.days} ימי עבודה · רגילות{' '}
+                <span className="num">{fmtHours(e.hours - e.shabbatHours)}</span> · שבת{' '}
+                <span className="num">{fmtHours(e.shabbatHours)}</span> · סה"כ{' '}
+                <span className="num">{fmtHours(e.hours)}</span> ש'
               </span>
             </div>
 
@@ -240,11 +240,12 @@ export function TipsReportPrint() {
             </div>
 
             <p className="mt-3 text-[10.5px] text-[#a1a1aa]">
-              טיפים לפי קופה משותפת (סך טיפים ÷ סך שעות). הרצפה = שכר מינימום (
+              טיפים לפי קופה משותפת (סך טיפים ÷ סך שעות). השלמה מחושבת מול שכר מינימום (
               {formatCurrency(minWage)} לשעה, בשבת 150% ={' '}
-              {formatCurrency(Math.round(minWage * 1.5))}) + נסיעות{' '}
-              {formatCurrency(travelPerDay)} ליום עבודה. השלמה מופעלת כשהטיפים נמוכים
-              מהרצפה. מסמך זה הוא כלי תמיכה בהחלטה ואינו תלוש שכר רשמי.
+              {formatCurrency(Math.round(minWage * 1.5))}) בלבד. "מעל הבסיס" = טיפים פחות
+              בסיס מינימום פחות נסיעות ({formatCurrency(travelPerDay)} ליום × {e.days} ={' '}
+              {formatCurrency(e.travel)}). מסמך זה הוא כלי תמיכה בהחלטה ואינו תלוש שכר
+              רשמי.
             </p>
           </section>
         ))
