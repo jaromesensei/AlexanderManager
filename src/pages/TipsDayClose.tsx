@@ -9,9 +9,8 @@ import {
   useDeleteTipDay,
   tipPerHour,
   calcLine,
-  minWageForDate,
-  isSaturday,
 } from '@/lib/queries/tips'
+import { parseTimeToMinutes, shiftHours, shabbatHoursForShift } from '@/lib/shabbat'
 import { formatCurrency, shekelsToAgorot, agorotToShekels, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -22,16 +21,22 @@ import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 interface Row {
   employee_id: string
-  hours: string
+  start: string // "HH:MM"
+  end: string // "HH:MM"
 }
 
 function emptyRow(): Row {
-  return { employee_id: '', hours: '' }
+  return { employee_id: '', start: '', end: '' }
 }
 
 function todayIso(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// שעות לתצוגה: שלם כמו שהוא, אחרת עד 2 ספרות
+function fmtHours(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
 }
 
 export function TipsDayClose() {
@@ -46,7 +51,6 @@ export function TipsDayClose() {
   const save = useSaveTipDay()
   const del = useDeleteTipDay()
 
-  // מצב הזנה: 'total' = מזינים סך טיפים · 'perHour' = מזינים טיפ לשעה והמערכת מחשבת את הסך
   const [mode, setMode] = useState<'total' | 'perHour'>('total')
   const [totalTips, setTotalTips] = useState('')
   const [perHourInput, setPerHourInput] = useState('')
@@ -68,7 +72,8 @@ export function TipsDayClose() {
         day.entries.length
           ? day.entries.map((e) => ({
               employee_id: e.employee_id,
-              hours: String(e.hours),
+              start: e.start_time ? e.start_time.slice(0, 5) : '',
+              end: e.end_time ? e.end_time.slice(0, 5) : '',
             }))
           : [emptyRow()]
       )
@@ -90,8 +95,21 @@ export function TipsDayClose() {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
   }
 
-  const totalHours = rows.reduce((s, r) => s + (parseFloat(r.hours) || 0), 0)
-  // לפי מצב ההזנה: או שהסך ידוע וממנו נגזר טיפ/שעה, או שטיפ/שעה ידוע וממנו נגזר הסך.
+  // שעות + שעות שבת לכל שורה, לפי שעון
+  const metrics = useMemo(
+    () =>
+      rows.map((r) => {
+        const s = parseTimeToMinutes(r.start)
+        const e = parseTimeToMinutes(r.end)
+        if (s == null || e == null) return { hours: 0, shabbat: 0 }
+        return { hours: shiftHours(s, e), shabbat: shabbatHoursForShift(date, s, e) }
+      }),
+    [rows, date]
+  )
+
+  const totalHours = metrics.reduce((s, m) => s + m.hours, 0)
+  const totalShabbat = metrics.reduce((s, m) => s + m.shabbat, 0)
+
   const perHourAgorot = perHourInput ? shekelsToAgorot(parseFloat(perHourInput)) : 0
   const totalTipsAgorot =
     mode === 'total'
@@ -100,27 +118,35 @@ export function TipsDayClose() {
         : 0
       : Math.round(perHourAgorot * totalHours)
   const tph = mode === 'total' ? tipPerHour(totalTipsAgorot, totalHours) : perHourAgorot
-  // שכר המינימום שחל על היום (בשבת — 150%)
-  const effMinWage = minWageForDate(date, minWage)
-  const isShabbat = isSaturday(date)
-  const topped = totalHours > 0 && tph < effMinWage
+
+  const dow = useMemo(() => {
+    const [y, m, d] = date.split('-').map(Number)
+    return new Date(y, m - 1, d).getDay()
+  }, [date])
+  const isFriSat = dow === 5 || dow === 6
 
   const payout = useMemo(() => {
     let sum = 0
-    for (const r of rows) {
-      const h = parseFloat(r.hours) || 0
-      if (h <= 0) continue
-      sum += calcLine(totalTipsAgorot, totalHours, h, effMinWage).total
-    }
+    rows.forEach((_, i) => {
+      const { hours, shabbat } = metrics[i]
+      if (hours <= 0) return
+      sum += calcLine(totalTipsAgorot, totalHours, hours, shabbat, minWage).total
+    })
     return sum
-  }, [rows, totalTipsAgorot, totalHours, effMinWage])
+  }, [rows, metrics, totalTipsAgorot, totalHours, minWage])
 
   async function onSave() {
     const entries = rows
-      .filter((r) => r.employee_id && parseFloat(r.hours) > 0)
-      .map((r) => ({ employee_id: r.employee_id, hours: parseFloat(r.hours) }))
+      .map((r, i) => ({ r, m: metrics[i] }))
+      .filter(({ r, m }) => r.employee_id && m.hours > 0)
+      .map(({ r, m }) => ({
+        employee_id: r.employee_id,
+        hours: m.hours,
+        start_time: r.start || null,
+        end_time: r.end || null,
+      }))
     if (entries.length === 0) {
-      setError('הוסף לפחות עובד אחד עם שעות')
+      setError('הוסף לפחות עובד אחד עם שעת התחלה וסיום')
       return
     }
     const ids = entries.map((e) => e.employee_id)
@@ -229,12 +255,15 @@ export function TipsDayClose() {
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-semibold text-neutral-300">מי עבד היום</h2>
-          <span className="text-xs text-neutral-500">שעות בפועל</span>
+          <span className="text-xs text-neutral-500">שעת כניסה ויציאה</span>
         </div>
 
         {rows.map((row, i) => {
-          const h = parseFloat(row.hours) || 0
-          const line = h > 0 ? calcLine(totalTipsAgorot, totalHours, h, effMinWage) : null
+          const m = metrics[i]
+          const line =
+            m.hours > 0
+              ? calcLine(totalTipsAgorot, totalHours, m.hours, m.shabbat, minWage)
+              : null
           return (
             <Card key={i} className="space-y-2">
               <div className="flex items-center gap-2">
@@ -257,14 +286,6 @@ export function TipsDayClose() {
                     </option>
                   ))}
                 </Select>
-                <input
-                  value={row.hours}
-                  onChange={(e) => setRow(i, { hours: e.target.value })}
-                  placeholder="שעות"
-                  inputMode="decimal"
-                  dir="ltr"
-                  className="h-11 w-20 rounded-xl border border-neutral-700 bg-neutral-900 px-2 text-center text-base text-neutral-100 focus:border-brand-500 focus:outline-none"
-                />
                 <button
                   onClick={() => setRows((prev) => prev.filter((_, idx) => idx !== i))}
                   className="shrink-0 rounded-lg p-2 text-neutral-500 hover:text-red-400"
@@ -273,20 +294,45 @@ export function TipsDayClose() {
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              {line && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs text-neutral-500">כניסה</label>
+                  <input
+                    type="time"
+                    value={row.start}
+                    onChange={(e) => setRow(i, { start: e.target.value })}
+                    dir="ltr"
+                    className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 text-center text-base text-neutral-100 focus:border-brand-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-neutral-500">יציאה</label>
+                  <input
+                    type="time"
+                    value={row.end}
+                    onChange={(e) => setRow(i, { end: e.target.value })}
+                    dir="ltr"
+                    className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 text-center text-base text-neutral-100 focus:border-brand-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+              {m.hours > 0 && (
                 <div className="flex items-center justify-between px-1 text-xs">
                   <span className="text-neutral-500">
-                    טיפים {formatCurrency(line.tips)}
-                    {line.topUp > 0 && (
+                    {fmtHours(m.hours)} שעות
+                    {m.shabbat > 0 && (
                       <span className="text-amber-400">
                         {' '}
-                        + השלמה {formatCurrency(line.topUp)}
+                        (מזה שבת {fmtHours(m.shabbat)})
                       </span>
                     )}
                   </span>
-                  <span className="num font-semibold text-neutral-200">
-                    {formatCurrency(line.total)}
-                  </span>
+                  {line && (
+                    <span className="num font-semibold text-neutral-200">
+                      {formatCurrency(line.total)}
+                      {line.topUp > 0 && <span className="text-amber-400"> · השלמה</span>}
+                    </span>
+                  )}
                 </div>
               )}
             </Card>
@@ -305,9 +351,9 @@ export function TipsDayClose() {
 
       {/* סיכום היום */}
       <Card className="space-y-2 border-brand-800 bg-brand-950/20">
-        {isShabbat && (
+        {isFriSat && totalShabbat > 0 && (
           <div className="rounded-lg bg-amber-950/40 px-3 py-1.5 text-xs font-semibold text-amber-300">
-            שבת · שכר מינימום 150% ({formatCurrency(effMinWage)} לשעה)
+            שעות שבת מזכות ב-150% ({formatCurrency(Math.round(minWage * 1.5))} לשעה)
           </div>
         )}
         <div className="flex items-center justify-between text-sm">
@@ -325,18 +371,17 @@ export function TipsDayClose() {
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-neutral-300">סה"כ שעות</span>
-          <span className="num">{totalHours}</span>
+          <span className="num">
+            {fmtHours(totalHours)}
+            {totalShabbat > 0 && (
+              <span className="text-amber-400"> (שבת {fmtHours(totalShabbat)})</span>
+            )}
+          </span>
         </div>
         <div className="flex items-center justify-between border-t border-neutral-800 pt-2 text-sm">
           <span className="text-neutral-300">סה"כ לתשלום (כולל השלמות)</span>
           <span className="num text-lg font-bold">{formatCurrency(payout)}</span>
         </div>
-        {topped && (
-          <p className="rounded-lg bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
-            הטיפ לשעה נמוך משכר המינימום{isShabbat ? ' בשבת' : ''} (
-            {formatCurrency(effMinWage)}) — הופעלה השלמה למינימום.
-          </p>
-        )}
       </Card>
 
       {error && (

@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toastBus } from '@/lib/toastBus'
+import { parseTimeToMinutes, shabbatHoursForShift } from '@/lib/shabbat'
+
+// גמול שבת: שכר המינימום בשעות שבת הוא 150%.
+export const SHABBAT_MULTIPLIER = 1.5
 
 // ── חישוב (טהור, באגורות) ──────────────────────────────────────────
 // טיפ/שעה = סך הטיפים ÷ סך השעות של כל המשתתפים באותו יום.
@@ -15,19 +19,39 @@ export interface LineResult {
   topped: boolean // האם היה צורך בהשלמה
 }
 
-/** מחשב לעובד בודד ביום נתון: טיפים, השלמה למינימום, וסה"כ. */
+/**
+ * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), השלמה למינימום, וסה"כ.
+ * רצפת המינימום מפצלת שעות רגילות (100%) משעות שבת (150%).
+ */
 export function calcLine(
   totalTips: number,
   dayHours: number,
   hours: number,
+  shabbatHours: number,
   minWage: number
 ): LineResult {
   const tph = tipPerHour(totalTips, dayHours)
   const tips = Math.round(tph * hours)
-  const effective = Math.max(tph, minWage)
-  const total = Math.round(effective * hours)
+  const shabbat = Math.min(Math.max(0, shabbatHours), hours)
+  const regular = Math.max(0, hours - shabbat)
+  const floor = Math.round(regular * minWage + shabbat * minWage * SHABBAT_MULTIPLIER)
+  const total = Math.max(tips, floor)
   const topUp = Math.max(0, total - tips)
-  return { tips, topUp, total, topped: tph < minWage }
+  return { tips, topUp, total, topped: floor > tips }
+}
+
+/** שעות השבת של שורה, לפי זמני התחלה/סיום (או נפילה חיננית: שבת=כל היום). */
+export function entryShabbatHours(
+  workDate: string,
+  hours: number,
+  startTime: string | null,
+  endTime: string | null
+): number {
+  const s = parseTimeToMinutes(startTime)
+  const e = parseTimeToMinutes(endTime)
+  if (s != null && e != null) return shabbatHoursForShift(workDate, s, e)
+  // אין זמנים (נתונים ישנים) — שבת מלאה נחשבת שבת, אחרת 0
+  return isSaturday(workDate) ? hours : 0
 }
 
 // ── שכר מינימום (הגדרה) ─────────────────────────────────────────────
@@ -119,7 +143,13 @@ export interface TipDayWithEntries {
   work_date: string
   total_tips: number
   notes: string | null
-  entries: { employee_id: string; hours: number; position: number }[]
+  entries: {
+    employee_id: string
+    hours: number
+    start_time: string | null
+    end_time: string | null
+    position: number
+  }[]
 }
 
 /** טוען יום בודד לפי תאריך (לעריכה). מחזיר null אם עוד לא נסגר. */
@@ -131,7 +161,7 @@ export function useTipDayByDate(date: string | undefined) {
       const { data, error } = await supabase
         .from('tip_days')
         .select(
-          'id, work_date, total_tips, notes, entries:tip_day_entries(employee_id, hours, position)'
+          'id, work_date, total_tips, notes, entries:tip_day_entries(employee_id, hours, start_time, end_time, position)'
         )
         .eq('work_date', date!)
         .maybeSingle()
@@ -147,6 +177,8 @@ export function useTipDayByDate(date: string | undefined) {
 export interface TipEntryInput {
   employee_id: string
   hours: number
+  start_time: string | null
+  end_time: string | null
 }
 export interface TipDayInput {
   work_date: string
@@ -181,6 +213,8 @@ export function useSaveTipDay() {
           tip_day_id: day.id,
           employee_id: e.employee_id,
           hours: e.hours,
+          start_time: e.start_time,
+          end_time: e.end_time,
           position: i,
         }))
       if (rows.length > 0) {
@@ -219,7 +253,12 @@ export function useDeleteTipDay() {
 export interface ReportDay {
   work_date: string
   total_tips: number
-  entries: { hours: number; employee: { id: string; full_name: string } | null }[]
+  entries: {
+    hours: number
+    start_time: string | null
+    end_time: string | null
+    employee: { id: string; full_name: string } | null
+  }[]
 }
 
 /** מושך את כל ימי הטיפים בטווח, עם שמות עובדים — לצורך אגרגציה בדוח. */
@@ -230,7 +269,7 @@ export function useTipReport(from: string, to: string) {
       const { data, error } = await supabase
         .from('tip_days')
         .select(
-          'work_date, total_tips, entries:tip_day_entries(hours, employee:employees(id, full_name))'
+          'work_date, total_tips, entries:tip_day_entries(hours, start_time, end_time, employee:employees(id, full_name))'
         )
         .gte('work_date', from)
         .lte('work_date', to)
@@ -245,6 +284,7 @@ export function useTipReport(from: string, to: string) {
 export interface ReportDayLine {
   date: string
   hours: number
+  shabbatHours: number
   tph: number
   tips: number
   topUp: number
@@ -268,13 +308,6 @@ export function isSaturday(isoDate: string): boolean {
   return new Date(y, m - 1, d).getDay() === 6
 }
 
-// גמול שבת: שכר המינימום בשבת הוא 150%.
-export const SHABBAT_MULTIPLIER = 1.5
-
-/** שכר המינימום שחל על תאריך נתון (בשבת — 150%). */
-export function minWageForDate(isoDate: string, minWage: number): number {
-  return isSaturday(isoDate) ? Math.round(minWage * SHABBAT_MULTIPLIER) : minWage
-}
 export interface ReportTotals {
   hours: number
   tips: number
@@ -291,12 +324,12 @@ export function aggregateReport(
   for (const day of days) {
     const dayHours = (day.entries ?? []).reduce((s, e) => s + Number(e.hours), 0)
     const tph = tipPerHour(day.total_tips, dayHours)
-    const dayMin = minWageForDate(day.work_date, minWage)
     for (const e of day.entries ?? []) {
       if (!e.employee) continue
       const h = Number(e.hours)
       if (!(h > 0)) continue
-      const line = calcLine(day.total_tips, dayHours, h, dayMin)
+      const shabbatH = entryShabbatHours(day.work_date, h, e.start_time, e.end_time)
+      const line = calcLine(day.total_tips, dayHours, h, shabbatH, minWage)
       let agg = map.get(e.employee.id)
       if (!agg) {
         agg = {
@@ -314,13 +347,14 @@ export function aggregateReport(
       }
       agg.days += 1
       agg.hours += h
-      if (isSaturday(day.work_date)) agg.shabbatHours += h
+      agg.shabbatHours += shabbatH
       agg.tips += line.tips
       agg.topUp += line.topUp
       agg.total += line.total
       agg.lines.push({
         date: day.work_date,
         hours: h,
+        shabbatHours: shabbatH,
         tph,
         tips: line.tips,
         topUp: line.topUp,

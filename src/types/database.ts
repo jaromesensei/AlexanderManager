@@ -163,6 +163,8 @@ export interface TipDayEntry {
   tip_day_id: string
   employee_id: string
   hours: number
+  start_time: string | null
+  end_time: string | null
   position: number
   created_at: string
 }
