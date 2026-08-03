@@ -201,8 +201,9 @@ export function TipsReportPrint() {
 
             <p className="mt-3 text-[10.5px] text-[#a1a1aa]">
               טיפים לפי קופה משותפת (סך טיפים ÷ סך שעות), עם השלמה לשכר מינימום (
-              {formatCurrency(minWage)} לשעה) בימים בהם הטיפ לשעה נמוך ממנו. מסמך זה הוא
-              כלי תמיכה בהחלטה ואינו תלוש שכר רשמי.
+              {formatCurrency(minWage)} לשעה, בשבת 150% ={' '}
+              {formatCurrency(Math.round(minWage * 1.5))}) בימים בהם הטיפ לשעה נמוך ממנו.
+              מסמך זה הוא כלי תמיכה בהחלטה ואינו תלוש שכר רשמי.
             </p>
           </section>
         ))

@@ -9,6 +9,8 @@ import {
   useDeleteTipDay,
   tipPerHour,
   calcLine,
+  minWageForDate,
+  isSaturday,
 } from '@/lib/queries/tips'
 import { formatCurrency, shekelsToAgorot, agorotToShekels, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -98,17 +100,20 @@ export function TipsDayClose() {
         : 0
       : Math.round(perHourAgorot * totalHours)
   const tph = mode === 'total' ? tipPerHour(totalTipsAgorot, totalHours) : perHourAgorot
-  const topped = totalHours > 0 && tph < minWage
+  // שכר המינימום שחל על היום (בשבת — 150%)
+  const effMinWage = minWageForDate(date, minWage)
+  const isShabbat = isSaturday(date)
+  const topped = totalHours > 0 && tph < effMinWage
 
   const payout = useMemo(() => {
     let sum = 0
     for (const r of rows) {
       const h = parseFloat(r.hours) || 0
       if (h <= 0) continue
-      sum += calcLine(totalTipsAgorot, totalHours, h, minWage).total
+      sum += calcLine(totalTipsAgorot, totalHours, h, effMinWage).total
     }
     return sum
-  }, [rows, totalTipsAgorot, totalHours, minWage])
+  }, [rows, totalTipsAgorot, totalHours, effMinWage])
 
   async function onSave() {
     const entries = rows
@@ -229,7 +234,7 @@ export function TipsDayClose() {
 
         {rows.map((row, i) => {
           const h = parseFloat(row.hours) || 0
-          const line = h > 0 ? calcLine(totalTipsAgorot, totalHours, h, minWage) : null
+          const line = h > 0 ? calcLine(totalTipsAgorot, totalHours, h, effMinWage) : null
           return (
             <Card key={i} className="space-y-2">
               <div className="flex items-center gap-2">
@@ -300,6 +305,11 @@ export function TipsDayClose() {
 
       {/* סיכום היום */}
       <Card className="space-y-2 border-brand-800 bg-brand-950/20">
+        {isShabbat && (
+          <div className="rounded-lg bg-amber-950/40 px-3 py-1.5 text-xs font-semibold text-amber-300">
+            שבת · שכר מינימום 150% ({formatCurrency(effMinWage)} לשעה)
+          </div>
+        )}
         <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-2 text-neutral-300">
             <Coins className="h-4 w-4 text-brand-400" />
@@ -323,8 +333,8 @@ export function TipsDayClose() {
         </div>
         {topped && (
           <p className="rounded-lg bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
-            הטיפ לשעה נמוך משכר המינימום ({formatCurrency(minWage)}) — הופעלה השלמה
-            למינימום.
+            הטיפ לשעה נמוך משכר המינימום{isShabbat ? ' בשבת' : ''} (
+            {formatCurrency(effMinWage)}) — הופעלה השלמה למינימום.
           </p>
         )}
       </Card>

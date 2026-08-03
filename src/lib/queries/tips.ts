@@ -267,6 +267,14 @@ export function isSaturday(isoDate: string): boolean {
   const [y, m, d] = isoDate.split('-').map(Number)
   return new Date(y, m - 1, d).getDay() === 6
 }
+
+// גמול שבת: שכר המינימום בשבת הוא 150%.
+export const SHABBAT_MULTIPLIER = 1.5
+
+/** שכר המינימום שחל על תאריך נתון (בשבת — 150%). */
+export function minWageForDate(isoDate: string, minWage: number): number {
+  return isSaturday(isoDate) ? Math.round(minWage * SHABBAT_MULTIPLIER) : minWage
+}
 export interface ReportTotals {
   hours: number
   tips: number
@@ -283,11 +291,12 @@ export function aggregateReport(
   for (const day of days) {
     const dayHours = (day.entries ?? []).reduce((s, e) => s + Number(e.hours), 0)
     const tph = tipPerHour(day.total_tips, dayHours)
+    const dayMin = minWageForDate(day.work_date, minWage)
     for (const e of day.entries ?? []) {
       if (!e.employee) continue
       const h = Number(e.hours)
       if (!(h > 0)) continue
-      const line = calcLine(day.total_tips, dayHours, h, minWage)
+      const line = calcLine(day.total_tips, dayHours, h, dayMin)
       let agg = map.get(e.employee.id)
       if (!agg) {
         agg = {
