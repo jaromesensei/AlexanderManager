@@ -169,6 +169,17 @@ export interface TipDayEntry {
   created_at: string
 }
 
+export interface AssistantAction {
+  id: string
+  action_type: string
+  work_date: string | null
+  description: string
+  prev_state: unknown | null
+  undone: boolean
+  created_by: string | null
+  created_at: string
+}
+
 export interface InvoiceItem {
   id: string
   invoice_id: string
@@ -269,6 +280,7 @@ export interface Database {
       app_settings: TableShape<AppSetting>
       tip_days: TableShape<TipDay>
       tip_day_entries: TableShape<TipDayEntry>
+      assistant_actions: TableShape<AssistantAction>
     }
     Views: Record<string, never>
     Functions: {

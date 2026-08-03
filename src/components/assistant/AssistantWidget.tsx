@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Sparkles,
   X,
@@ -10,15 +11,17 @@ import {
   Pencil,
   Undo2,
   Camera,
+  History,
 } from 'lucide-react'
 import { useEmployees } from '@/lib/queries/employees'
-import {
-  useMinWage,
-  useTipReport,
-  useSaveTipDay,
-  useDeleteTipDay,
-} from '@/lib/queries/tips'
+import { useMinWage, useTipReport, useSaveTipDay } from '@/lib/queries/tips'
 import type { TipDayInput } from '@/lib/queries/tips'
+import {
+  logTipAction,
+  reverseAndMark,
+  ACTIONS_KEY,
+  type TipSnapshot,
+} from '@/lib/queries/actionLog'
 import { uploadInvoiceImage } from '@/lib/queries/storage'
 import {
   askAssistant,
@@ -96,10 +99,11 @@ export function AssistantWidget() {
 
 function ChatPanel({ onClose }: { onClose: () => void }) {
   const toast = useToast()
+  const navigate = useNavigate()
+  const qc = useQueryClient()
   const { data: employees } = useEmployees()
   const { data: minWage = 3540 } = useMinWage()
   const saveTip = useSaveTipDay()
-  const del = useDeleteTipDay()
 
   // הקשר: 45 הימים האחרונים
   const today = todayIso()
@@ -244,14 +248,12 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
     const { data: existing } = await supabase
       .from('tip_days')
       .select(
-        'id, total_tips, notes, entries:tip_day_entries(employee_id, hours, start_time, end_time, position)'
+        'total_tips, notes, entries:tip_day_entries(employee_id, hours, start_time, end_time, position)'
       )
       .eq('work_date', dayInput.work_date)
       .maybeSingle()
-    const res = await saveTip.mutateAsync(dayInput)
-    const newId = (res as { id: string }).id
 
-    let undo: () => Promise<void>
+    let prev: TipSnapshot | null = null
     if (existing) {
       const p = existing as unknown as {
         total_tips: number
@@ -264,8 +266,7 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
           position: number
         }[]
       }
-      const prevInput: TipDayInput = {
-        work_date: dayInput.work_date,
+      prev = {
         total_tips: p.total_tips,
         notes: p.notes,
         entries: [...p.entries]
@@ -277,23 +278,27 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
             end_time: e.end_time,
           })),
       }
-      undo = async () => {
-        await saveTip.mutateAsync(prevInput)
-      }
-    } else {
-      undo = async () => {
-        await del.mutateAsync(newId)
-      }
+    }
+
+    await saveTip.mutateAsync(dayInput)
+    const label = `סגירת ${weekday(dayInput.work_date)} ${dmy(dayInput.work_date)}`
+    const row = await logTipAction({
+      work_date: dayInput.work_date,
+      description: label,
+      prev,
+    })
+
+    const undo = async () => {
+      await reverseAndMark(row)
+      qc.invalidateQueries({ queryKey: ['tip_days'] })
+      qc.invalidateQueries({ queryKey: ['tip_day'] })
+      qc.invalidateQueries({ queryKey: ['tip_report'] })
+      qc.invalidateQueries({ queryKey: ACTIONS_KEY })
     }
 
     setMessages((msgs) => [
       ...msgs,
-      {
-        id: idRef.current++,
-        role: 'system',
-        content: `נשמרה סגירת ${weekday(dayInput.work_date)} ${dmy(dayInput.work_date)} ✓`,
-        undo,
-      },
+      { id: idRef.current++, role: 'system', content: `נשמרה ${label} ✓`, undo },
     ])
   }
 
@@ -335,13 +340,25 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-neutral-500">העוזר של אלכסנדר</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="סגור"
-          className="rounded-lg p-2 text-neutral-400 hover:text-neutral-100"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              onClose()
+              navigate('/assistant/log')
+            }}
+            aria-label="יומן פעולות"
+            className="rounded-lg p-2 text-neutral-400 hover:text-neutral-100"
+          >
+            <History className="h-5 w-5" />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="סגור"
+            className="rounded-lg p-2 text-neutral-400 hover:text-neutral-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* הודעות */}

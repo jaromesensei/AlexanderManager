@@ -22,6 +22,7 @@ import { Tips } from '@/pages/Tips'
 import { TipsDayClose } from '@/pages/TipsDayClose'
 import { TipsReport } from '@/pages/TipsReport'
 import { TipsReportPrint } from '@/pages/TipsReportPrint'
+import { AssistantLog } from '@/pages/AssistantLog'
 import { Schedule } from '@/pages/Schedule'
 import { Employees } from '@/pages/Employees'
 import { Requirements } from '@/pages/Requirements'
@@ -184,6 +185,14 @@ export default function App() {
                     element={
                       <ProtectedRoute managerOnly>
                         <TipsReport />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/assistant/log"
+                    element={
+                      <ProtectedRoute managerOnly>
+                        <AssistantLog />
                       </ProtectedRoute>
                     }
                   />
