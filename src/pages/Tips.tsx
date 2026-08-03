@@ -4,6 +4,8 @@ import { ChevronLeft, Plus, FileBarChart, Coins, Settings2 } from 'lucide-react'
 import {
   useMinWage,
   useSetMinWage,
+  useTravelPerDay,
+  useSetTravelPerDay,
   useTipDays,
   tipPerHour,
   type TipDayRow,
@@ -31,18 +33,32 @@ export function Tips() {
   const setMinWage = useSetMinWage()
   const { data: days, isLoading } = useTipDays()
 
+  const { data: travel } = useTravelPerDay()
+  const setTravel = useSetTravelPerDay()
+
   const [editWage, setEditWage] = useState(false)
   const [wageInput, setWageInput] = useState('')
+  const [editTravel, setEditTravel] = useState(false)
+  const [travelInput, setTravelInput] = useState('')
 
   useEffect(() => {
     if (minWage != null) setWageInput(String(agorotToShekels(minWage)))
   }, [minWage])
+  useEffect(() => {
+    if (travel != null) setTravelInput(String(agorotToShekels(travel)))
+  }, [travel])
 
   async function saveWage() {
     const val = parseFloat(wageInput)
     if (!(val > 0)) return
     await setMinWage.mutateAsync(shekelsToAgorot(val))
     setEditWage(false)
+  }
+  async function saveTravel() {
+    const val = parseFloat(travelInput)
+    if (!(val >= 0)) return
+    await setTravel.mutateAsync(shekelsToAgorot(val))
+    setEditTravel(false)
   }
 
   const recent = (days ?? []).slice(0, 15)
@@ -108,6 +124,46 @@ export function Tips() {
             </span>
             <span className="num font-semibold">
               {minWage != null ? formatCurrency(minWage) : '—'}
+            </span>
+          </button>
+        )}
+      </Card>
+
+      {/* נסיעות ליום */}
+      <Card className="space-y-2">
+        {editTravel ? (
+          <div className="space-y-2">
+            <Input
+              label="דמי נסיעות ליום עבודה (₪)"
+              value={travelInput}
+              onChange={(e) => setTravelInput(e.target.value)}
+              inputMode="decimal"
+              dir="ltr"
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={saveTravel}
+                loading={setTravel.isPending}
+                className="flex-1"
+              >
+                שמור
+              </Button>
+              <Button variant="ghost" onClick={() => setEditTravel(false)}>
+                ביטול
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setEditTravel(true)}
+            className="flex w-full items-center justify-between"
+          >
+            <span className="flex items-center gap-2 text-sm text-neutral-300">
+              <Settings2 className="h-4 w-4 text-neutral-500" />
+              נסיעות ליום עבודה
+            </span>
+            <span className="num font-semibold">
+              {travel != null ? formatCurrency(travel) : '—'}
             </span>
           </button>
         )}

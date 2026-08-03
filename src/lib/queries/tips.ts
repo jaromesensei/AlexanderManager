@@ -14,33 +14,38 @@ export function tipPerHour(totalTips: number, totalHours: number): number {
 
 export interface LineResult {
   tips: number // חלק העובד מהקופה (אגורות)
-  base: number // הבסיס = שכר המינימום המגיע לפי השעות (אגורות)
-  topUp: number // השלמה עד המינימום (אגורות)
-  over: number // בכמה הטיפים עברו את הבסיס (אגורות)
+  base: number // בסיס שכר המינימום לפי השעות (אגורות)
+  travel: number // נסיעות ליום (אגורות)
+  topUp: number // השלמה עד הרצפה (בסיס + נסיעות) (אגורות)
+  over: number // בכמה הטיפים עברו את הרצפה (אגורות)
   total: number // סה"כ לתשלום לאותו יום (אגורות)
   topped: boolean // האם היה צורך בהשלמה
 }
 
 /**
- * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), בסיס מינימום, השלמה,
- * בכמה עבר את הבסיס, וסה"כ. הבסיס מפצל שעות רגילות (100%) משעות שבת (150%).
+ * מחשב לעובד בודד ביום נתון: טיפים (לפי חלק בקופה), בסיס מינימום, נסיעות,
+ * השלמה, בכמה עבר את הרצפה, וסה"כ. הרצפה = בסיס מינימום (רגיל 100% + שבת 150%)
+ * + נסיעות ליום. הטיפים צריכים לכסות את הרצפה; מה שמעליה = "מעל הבסיס".
  */
 export function calcLine(
   totalTips: number,
   dayHours: number,
   hours: number,
   shabbatHours: number,
-  minWage: number
+  minWage: number,
+  travelPerDay: number
 ): LineResult {
   const tph = tipPerHour(totalTips, dayHours)
   const tips = Math.round(tph * hours)
   const shabbat = Math.min(Math.max(0, shabbatHours), hours)
   const regular = Math.max(0, hours - shabbat)
   const base = Math.round(regular * minWage + shabbat * minWage * SHABBAT_MULTIPLIER)
-  const total = Math.max(tips, base)
-  const topUp = Math.max(0, base - tips)
-  const over = Math.max(0, tips - base)
-  return { tips, base, topUp, over, total, topped: base > tips }
+  const travel = travelPerDay
+  const floor = base + travel
+  const total = Math.max(tips, floor)
+  const topUp = Math.max(0, floor - tips)
+  const over = Math.max(0, tips - floor)
+  return { tips, base, travel, topUp, over, total, topped: floor > tips }
 }
 
 /** שעות השבת של שורה, לפי זמני התחלה/סיום (או נפילה חיננית: שבת=כל היום). */
@@ -95,6 +100,48 @@ export function useSetMinWage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: MIN_WAGE_KEY })
       toastBus('success', 'שכר המינימום עודכן')
+    },
+  })
+}
+
+// ── נסיעות ליום (הגדרה) ─────────────────────────────────────────────
+const TRAVEL_KEY = ['app_settings', 'travel_per_day']
+const DEFAULT_TRAVEL = 1700 // 17.00 ₪ (אגורות)
+
+export function useTravelPerDay() {
+  return useQuery({
+    queryKey: TRAVEL_KEY,
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'travel_per_day')
+        .maybeSingle()
+      if (error) throw error
+      const v = (data as { value: string } | null)?.value
+      const n = v ? parseInt(v, 10) : NaN
+      return Number.isFinite(n) ? n : DEFAULT_TRAVEL
+    },
+  })
+}
+
+export function useSetTravelPerDay() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (agorot: number) => {
+      const { error } = await supabase.from('app_settings').upsert(
+        {
+          key: 'travel_per_day',
+          value: String(Math.round(agorot)),
+          updated_at: new Date().toISOString(),
+        } as never,
+        { onConflict: 'key' }
+      )
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: TRAVEL_KEY })
+      toastBus('success', 'דמי הנסיעות עודכנו')
     },
   })
 }
@@ -291,6 +338,7 @@ export interface ReportDayLine {
   tph: number
   tips: number
   base: number
+  travel: number
   topUp: number
   over: number
   total: number
@@ -303,8 +351,9 @@ export interface ReportEmp {
   shabbatHours: number // שעות שבת (יום שבת) מתוך סך השעות
   tips: number
   base: number // סך הבסיס (מינימום מגיע)
+  travel: number // סך דמי נסיעות (ימים × תעריף)
   topUp: number
-  over: number // בכמה הטיפים עברו את הבסיס
+  over: number // בכמה הטיפים עברו את הרצפה (בסיס + נסיעות)
   total: number
   lines: ReportDayLine[]
 }
@@ -319,6 +368,7 @@ export interface ReportTotals {
   hours: number
   tips: number
   base: number
+  travel: number
   topUp: number
   over: number
   total: number
@@ -327,7 +377,8 @@ export interface ReportTotals {
 /** מקבץ את ימי הטיפים לפי עובד, עם פירוט יומי וסיכומים (הכל אגורות). */
 export function aggregateReport(
   days: ReportDay[],
-  minWage: number
+  minWage: number,
+  travelPerDay: number
 ): { emps: ReportEmp[]; totals: ReportTotals } {
   const map = new Map<string, ReportEmp>()
   for (const day of days) {
@@ -338,7 +389,7 @@ export function aggregateReport(
       const h = Number(e.hours)
       if (!(h > 0)) continue
       const shabbatH = entryShabbatHours(day.work_date, h, e.start_time, e.end_time)
-      const line = calcLine(day.total_tips, dayHours, h, shabbatH, minWage)
+      const line = calcLine(day.total_tips, dayHours, h, shabbatH, minWage, travelPerDay)
       let agg = map.get(e.employee.id)
       if (!agg) {
         agg = {
@@ -349,6 +400,7 @@ export function aggregateReport(
           shabbatHours: 0,
           tips: 0,
           base: 0,
+          travel: 0,
           topUp: 0,
           over: 0,
           total: 0,
@@ -361,6 +413,7 @@ export function aggregateReport(
       agg.shabbatHours += shabbatH
       agg.tips += line.tips
       agg.base += line.base
+      agg.travel += line.travel
       agg.topUp += line.topUp
       agg.over += line.over
       agg.total += line.total
@@ -371,6 +424,7 @@ export function aggregateReport(
         tph,
         tips: line.tips,
         base: line.base,
+        travel: line.travel,
         topUp: line.topUp,
         over: line.over,
         total: line.total,
@@ -383,11 +437,12 @@ export function aggregateReport(
       hours: acc.hours + e.hours,
       tips: acc.tips + e.tips,
       base: acc.base + e.base,
+      travel: acc.travel + e.travel,
       topUp: acc.topUp + e.topUp,
       over: acc.over + e.over,
       total: acc.total + e.total,
     }),
-    { hours: 0, tips: 0, base: 0, topUp: 0, over: 0, total: 0 }
+    { hours: 0, tips: 0, base: 0, travel: 0, topUp: 0, over: 0, total: 0 }
   )
   return { emps, totals }
 }

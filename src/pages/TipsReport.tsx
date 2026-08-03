@@ -9,7 +9,12 @@ import {
   Users,
   ChevronDown,
 } from 'lucide-react'
-import { useMinWage, useTipReport, aggregateReport } from '@/lib/queries/tips'
+import {
+  useMinWage,
+  useTravelPerDay,
+  useTipReport,
+  aggregateReport,
+} from '@/lib/queries/tips'
 import { downloadCsv } from '@/lib/exportCsv'
 import { formatCurrency, agorotToShekels, cn } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
@@ -44,10 +49,11 @@ export function TipsReport() {
 
   const { data: days, isLoading } = useTipReport(from, to)
   const { data: minWage = 3540 } = useMinWage()
+  const { data: travelPerDay = 1700 } = useTravelPerDay()
 
   const { emps, totals } = useMemo(
-    () => aggregateReport(days ?? [], minWage),
-    [days, minWage]
+    () => aggregateReport(days ?? [], minWage, travelPerDay),
+    [days, minWage, travelPerDay]
   )
 
   const monthLabel = new Intl.DateTimeFormat('he-IL', {
@@ -65,6 +71,7 @@ export function TipsReport() {
       'טיפ לשעה (₪)',
       'טיפים (₪)',
       'בסיס מינימום (₪)',
+      'נסיעות (₪)',
       'השלמה (₪)',
       'מעל הבסיס (₪)',
       'סה"כ לתשלום (₪)',
@@ -80,6 +87,7 @@ export function TipsReport() {
           agorotToShekels(Math.round(l.tph)),
           agorotToShekels(l.tips),
           agorotToShekels(l.base),
+          agorotToShekels(l.travel),
           agorotToShekels(l.topUp),
           agorotToShekels(l.over),
           agorotToShekels(l.total),
@@ -93,6 +101,7 @@ export function TipsReport() {
         '',
         agorotToShekels(e.tips),
         agorotToShekels(e.base),
+        agorotToShekels(e.travel),
         agorotToShekels(e.topUp),
         agorotToShekels(e.over),
         agorotToShekels(e.total),
@@ -106,6 +115,7 @@ export function TipsReport() {
       '',
       agorotToShekels(totals.tips),
       agorotToShekels(totals.base),
+      agorotToShekels(totals.travel),
       agorotToShekels(totals.topUp),
       agorotToShekels(totals.over),
       agorotToShekels(totals.total),
@@ -162,6 +172,9 @@ export function TipsReport() {
                 <p>
                   טיפים <span className="num">{formatCurrency(totals.tips)}</span>
                 </p>
+                <p>
+                  נסיעות <span className="num">{formatCurrency(totals.travel)}</span>
+                </p>
                 <p className="text-green-400">
                   מעל הבסיס <span className="num">{formatCurrency(totals.over)}</span>
                 </p>
@@ -208,7 +221,8 @@ export function TipsReport() {
                       </p>
                       <p className="mt-0.5 text-xs">
                         <span className="text-neutral-500">
-                          בסיס {formatCurrency(e.base)}
+                          בסיס {formatCurrency(e.base)} · נסיעות{' '}
+                          {formatCurrency(e.travel)}
                         </span>
                         {e.over > 0 && (
                           <span className="text-green-400">

@@ -1,7 +1,13 @@
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, Printer } from 'lucide-react'
-import { useMinWage, useTipReport, aggregateReport, isSaturday } from '@/lib/queries/tips'
+import {
+  useMinWage,
+  useTravelPerDay,
+  useTipReport,
+  aggregateReport,
+  isSaturday,
+} from '@/lib/queries/tips'
 import { formatCurrency, formatAgorot } from '@/lib/utils'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
 
@@ -26,7 +32,11 @@ export function TipsReportPrint() {
 
   const { data: days, isLoading } = useTipReport(from, to)
   const { data: minWage = 3540 } = useMinWage()
-  const { emps } = useMemo(() => aggregateReport(days ?? [], minWage), [days, minWage])
+  const { data: travelPerDay = 1700 } = useTravelPerDay()
+  const { emps } = useMemo(
+    () => aggregateReport(days ?? [], minWage, travelPerDay),
+    [days, minWage, travelPerDay]
+  )
 
   const monthLabel = useMemo(
     () =>
@@ -195,21 +205,27 @@ export function TipsReportPrint() {
               </tfoot>
             </table>
 
-            {/* בסיס / מעל הבסיס / השלמה */}
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            {/* בסיס / נסיעות / מעל הבסיס / השלמה */}
+            <div className="mt-4 grid grid-cols-4 gap-2 text-center">
               <div className="rounded-lg bg-[#f4f4f5] px-2 py-2">
                 <div className="text-[10px] text-[#71717a]">בסיס מינימום</div>
-                <div className="num text-[15px] font-bold">{formatCurrency(e.base)}</div>
+                <div className="num text-[14px] font-bold">{formatCurrency(e.base)}</div>
+              </div>
+              <div className="rounded-lg bg-[#f4f4f5] px-2 py-2">
+                <div className="text-[10px] text-[#71717a]">נסיעות</div>
+                <div className="num text-[14px] font-bold">
+                  {formatCurrency(e.travel)}
+                </div>
               </div>
               <div className="rounded-lg bg-[#ecfdf5] px-2 py-2">
                 <div className="text-[10px] text-[#047857]">מעל הבסיס</div>
-                <div className="num text-[15px] font-bold text-[#047857]">
+                <div className="num text-[14px] font-bold text-[#047857]">
                   {e.over > 0 ? '+' + formatCurrency(e.over) : '—'}
                 </div>
               </div>
               <div className="rounded-lg bg-[#fffbeb] px-2 py-2">
                 <div className="text-[10px] text-[#b45309]">השלמה</div>
-                <div className="num text-[15px] font-bold text-[#b45309]">
+                <div className="num text-[14px] font-bold text-[#b45309]">
                   {e.topUp > 0 ? formatCurrency(e.topUp) : '—'}
                 </div>
               </div>
@@ -224,10 +240,11 @@ export function TipsReportPrint() {
             </div>
 
             <p className="mt-3 text-[10.5px] text-[#a1a1aa]">
-              טיפים לפי קופה משותפת (סך טיפים ÷ סך שעות), עם השלמה לשכר מינימום (
+              טיפים לפי קופה משותפת (סך טיפים ÷ סך שעות). הרצפה = שכר מינימום (
               {formatCurrency(minWage)} לשעה, בשבת 150% ={' '}
-              {formatCurrency(Math.round(minWage * 1.5))}) בימים בהם הטיפ לשעה נמוך ממנו.
-              מסמך זה הוא כלי תמיכה בהחלטה ואינו תלוש שכר רשמי.
+              {formatCurrency(Math.round(minWage * 1.5))}) + נסיעות{' '}
+              {formatCurrency(travelPerDay)} ליום עבודה. השלמה מופעלת כשהטיפים נמוכים
+              מהרצפה. מסמך זה הוא כלי תמיכה בהחלטה ואינו תלוש שכר רשמי.
             </p>
           </section>
         ))
