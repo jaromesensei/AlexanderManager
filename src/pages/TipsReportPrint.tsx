@@ -136,8 +136,8 @@ export function TipsReportPrint() {
                   const sat = isSaturday(l.date)
                   return (
                     <tr key={i} style={{ background: sat ? '#fff7ed' : '#fff' }}>
-                      <td className="num border border-[#eef0f2] p-2 text-right">
-                        {dmy(l.date)}
+                      <td className="border border-[#eef0f2] p-2 text-right">
+                        <span className="num">{dmy(l.date)}</span>
                       </td>
                       <td className="border border-[#eef0f2] p-2 text-right text-[#52525b]">
                         {weekday(l.date)}
@@ -147,20 +147,24 @@ export function TipsReportPrint() {
                           </span>
                         )}
                       </td>
-                      <td className="num border border-[#eef0f2] p-2 text-right">
-                        {l.hours}
+                      <td className="border border-[#eef0f2] p-2 text-right">
+                        <span className="num">{l.hours}</span>
                       </td>
-                      <td className="num border border-[#eef0f2] p-2 text-right text-[#52525b]">
-                        {formatAgorot(Math.round(l.tph))}
+                      <td className="border border-[#eef0f2] p-2 text-right text-[#52525b]">
+                        <span className="num">{formatAgorot(Math.round(l.tph))}</span>
                       </td>
-                      <td className="num border border-[#eef0f2] p-2 text-right">
-                        {formatAgorot(l.tips)}
+                      <td className="border border-[#eef0f2] p-2 text-right">
+                        <span className="num">{formatAgorot(l.tips)}</span>
                       </td>
-                      <td className="num border border-[#eef0f2] p-2 text-right text-[#b45309]">
-                        {l.topUp > 0 ? formatAgorot(l.topUp) : '—'}
+                      <td className="border border-[#eef0f2] p-2 text-right text-[#b45309]">
+                        {l.topUp > 0 ? (
+                          <span className="num">{formatAgorot(l.topUp)}</span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
-                      <td className="num border border-[#eef0f2] p-2 text-right font-semibold">
-                        {formatAgorot(l.total)}
+                      <td className="border border-[#eef0f2] p-2 text-right font-semibold">
+                        <span className="num">{formatAgorot(l.total)}</span>
                       </td>
                     </tr>
                   )
@@ -174,18 +178,18 @@ export function TipsReportPrint() {
                   >
                     סה"כ
                   </td>
-                  <td className="num border border-[#c7d2fe] p-2 text-right">
-                    {e.hours}
+                  <td className="border border-[#c7d2fe] p-2 text-right">
+                    <span className="num">{e.hours}</span>
                   </td>
                   <td className="border border-[#c7d2fe] p-2"></td>
-                  <td className="num border border-[#c7d2fe] p-2 text-right">
-                    {formatAgorot(e.tips)}
+                  <td className="border border-[#c7d2fe] p-2 text-right">
+                    <span className="num">{formatAgorot(e.tips)}</span>
                   </td>
-                  <td className="num border border-[#c7d2fe] p-2 text-right text-[#b45309]">
-                    {formatAgorot(e.topUp)}
+                  <td className="border border-[#c7d2fe] p-2 text-right text-[#b45309]">
+                    <span className="num">{formatAgorot(e.topUp)}</span>
                   </td>
-                  <td className="num border border-[#c7d2fe] p-2 text-right">
-                    {formatAgorot(e.total)}
+                  <td className="border border-[#c7d2fe] p-2 text-right">
+                    <span className="num">{formatAgorot(e.total)}</span>
                   </td>
                 </tr>
               </tfoot>
