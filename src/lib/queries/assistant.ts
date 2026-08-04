@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, freshAccessToken } from '@/lib/supabase'
 
 export interface AssistantEntry {
   employee_id: string
@@ -40,9 +40,8 @@ export async function askAssistant(
   context: AssistantContext,
   imagePath?: string
 ): Promise<AssistantReply> {
-  // ריענון ה-session (מרענן טוקן שפג) והעברת טוקן טרי בכותרת
-  const { data: sess } = await supabase.auth.getSession()
-  const token = sess.session?.access_token
+  // טוקן טרי (מרענן אם פג) — מונע 401 "לא מחובר"
+  const token = await freshAccessToken()
   const { data, error } = await supabase.functions.invoke('assistant', {
     body: { messages, context, image_path: imagePath ?? null },
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,

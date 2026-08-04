@@ -17,3 +17,19 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 })
+
+/**
+ * מחזיר access token תקף לקריאות ל-Edge Functions. אם הטוקן פג או קרוב
+ * לפוג — מרענן אותו יזומה (מונע 401 "לא מחובר").
+ */
+export async function freshAccessToken(): Promise<string | undefined> {
+  const { data } = await supabase.auth.getSession()
+  const session = data.session
+  if (!session) return undefined
+  const expMs = (session.expires_at ?? 0) * 1000
+  if (expMs && expMs < Date.now() + 60_000) {
+    const { data: refreshed } = await supabase.auth.refreshSession()
+    return refreshed.session?.access_token ?? session.access_token
+  }
+  return session.access_token
+}

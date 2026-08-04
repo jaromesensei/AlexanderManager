@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, freshAccessToken } from '@/lib/supabase'
 
 const BUCKET = 'invoices'
 
@@ -84,8 +84,7 @@ export interface ExtractedInvoice {
 
 /** מריץ חילוץ אוטומטי (Claude Vision) על תמונה שהועלתה. */
 export async function extractInvoice(path: string): Promise<ExtractedInvoice> {
-  const { data: sess } = await supabase.auth.getSession()
-  const token = sess.session?.access_token
+  const token = await freshAccessToken()
   const { data, error } = await supabase.functions.invoke('extract-invoice', {
     body: { path },
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
