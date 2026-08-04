@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
     try {
       parsed = parseJson(textBlock.text) as typeof parsed
     } catch (_) {
-      // כשל פענוח — לרוב בגלל תשובה שנקטעה (יותר מדי ימים בבת אחת)
+      // תשובה שנקטעה (יותר מדי ימים בבת אחת)
       if (data.stop_reason === 'max_tokens') {
         return json({
           reply:
@@ -205,10 +205,8 @@ Deno.serve(async (req) => {
           proposals: [],
         })
       }
-      return json({
-        reply: 'לא הצלחתי לעבד את התשובה. נסה שוב, אולי בניסוח אחר.',
-        proposals: [],
-      })
+      // אלכס ענה בטקסט חופשי (בלי JSON) — נציג את התשובה כמו שהיא, בלי הצעות
+      return json({ reply: textBlock.text.trim(), proposals: [] })
     }
     return json({ reply: parsed.reply ?? '', proposals: parsed.proposals ?? [] })
   } catch (err) {
