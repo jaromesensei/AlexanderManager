@@ -1,8 +1,15 @@
+import { lazy, Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { TopBar } from './TopBar'
 import { BottomNav } from './BottomNav'
-import { AssistantWidget } from '@/components/assistant/AssistantWidget'
 import { useAuth } from '@/contexts/AuthContext'
+
+// טעינה עצלה — העוזר (וספריות כבדות שלו) נטענים אחרי הצגת המסך, לא חוסמים.
+const AssistantWidget = lazy(() =>
+  import('@/components/assistant/AssistantWidget').then((m) => ({
+    default: m.AssistantWidget,
+  }))
+)
 
 export function AppShell() {
   const { pathname } = useLocation()
@@ -17,7 +24,11 @@ export function AppShell() {
         </div>
       </main>
       <BottomNav />
-      {isManager && <AssistantWidget />}
+      {isManager && (
+        <Suspense fallback={null}>
+          <AssistantWidget />
+        </Suspense>
+      )}
     </div>
   )
 }
