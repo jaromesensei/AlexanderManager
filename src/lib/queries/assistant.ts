@@ -40,8 +40,12 @@ export async function askAssistant(
   context: AssistantContext,
   imagePath?: string
 ): Promise<AssistantReply> {
+  // ריענון ה-session (מרענן טוקן שפג) והעברת טוקן טרי בכותרת
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess.session?.access_token
   const { data, error } = await supabase.functions.invoke('assistant', {
     body: { messages, context, image_path: imagePath ?? null },
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
   if (error) {
     const ctx = (error as { context?: Response }).context

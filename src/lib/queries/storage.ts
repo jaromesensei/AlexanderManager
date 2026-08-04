@@ -84,8 +84,11 @@ export interface ExtractedInvoice {
 
 /** מריץ חילוץ אוטומטי (Claude Vision) על תמונה שהועלתה. */
 export async function extractInvoice(path: string): Promise<ExtractedInvoice> {
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess.session?.access_token
   const { data, error } = await supabase.functions.invoke('extract-invoice', {
     body: { path },
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
   if (error) {
     // חילוץ הסיבה האמיתית מגוף התשובה (במקום "non-2xx status code" כללי)
