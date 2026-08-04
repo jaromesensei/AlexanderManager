@@ -147,7 +147,8 @@ Deno.serve(async (req) => {
 
     const body = {
       model: MODEL,
-      max_tokens: image_path ? 4000 : 2000,
+      // מספיק גדול לריבוי ימים בהצעה אחת (למשל צילום/הזנה של שבוע-חודש)
+      max_tokens: 12000,
       system: systemPrompt(context as Ctx),
       messages: apiMessages,
     }
@@ -193,8 +194,18 @@ Deno.serve(async (req) => {
     try {
       parsed = parseJson(textBlock.text) as typeof parsed
     } catch (_) {
-      // אם לא הצליח לפרסר — נחזיר את הטקסט כתשובה חופשית
-      return json({ reply: textBlock.text, proposals: [] })
+      // כשל פענוח — לרוב בגלל תשובה שנקטעה (יותר מדי ימים בבת אחת)
+      if (data.stop_reason === 'max_tokens') {
+        return json({
+          reply:
+            'התשובה ארוכה מדי לעיבוד בבת אחת. נסה לחלק לפחות ימים — למשל שבוע כל פעם.',
+          proposals: [],
+        })
+      }
+      return json({
+        reply: 'לא הצלחתי לעבד את התשובה. נסה שוב, אולי בניסוח אחר.',
+        proposals: [],
+      })
     }
     return json({ reply: parsed.reply ?? '', proposals: parsed.proposals ?? [] })
   } catch (err) {
