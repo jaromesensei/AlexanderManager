@@ -9,7 +9,7 @@ export function BottomNav() {
   const items = NAV_ITEMS.filter((item) => isManager || item.employeeVisible)
 
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-neutral-800 bg-neutral-950/95 backdrop-blur">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-neutral-800 bg-neutral-950/95 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-lg items-stretch justify-around">
         {items.map((item) => (
           <NavLink
