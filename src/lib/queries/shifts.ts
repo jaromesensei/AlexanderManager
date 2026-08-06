@@ -105,7 +105,7 @@ export function useUpdateShift() {
       patch,
     }: {
       id: string
-      patch: Partial<Pick<ShiftAssignment, 'role' | 'start_time'>>
+      patch: Partial<Pick<ShiftAssignment, 'role' | 'start_time' | 'work_date' | 'shift'>>
     }) => {
       const { error } = await supabase
         .from('shift_assignments')

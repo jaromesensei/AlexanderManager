@@ -50,6 +50,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
+import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 
 /** תגית חג/מועד על יום בסידור. */
 function HolidayBadge({ info }: { info: HolidayInfo }) {
@@ -200,33 +201,48 @@ export function Schedule() {
       ) : isLoading ? (
         <ListSkeleton rows={7} />
       ) : (
-        <div className="stagger space-y-3">
-          {days.map((day, i) => {
-            const iso = toISODate(day)
-            const dayShifts = byDate[iso] ?? []
-            const req = requiredForWeekday(i)
-            return (
-              <Card key={iso} className="space-y-2.5">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
-                  <span className="text-sm text-neutral-500">{formatDate(day)}</span>
-                  {holidays[iso] && <HolidayBadge info={holidays[iso]} />}
-                </div>
-                {SHIFTS.map((sh) => (
-                  <ShiftSection
-                    key={sh}
-                    date={iso}
-                    shift={sh}
-                    assignments={dayShifts.filter((s) => s.shift === sh)}
-                    required={req[sh]}
-                    avail={weekAvail ?? []}
-                    employees={employees ?? []}
-                  />
-                ))}
-              </Card>
-            )
-          })}
-        </div>
+        <>
+          {/* טלפון — כרטיס ליום */}
+          <div className="stagger space-y-3 lg:hidden">
+            {days.map((day, i) => {
+              const iso = toISODate(day)
+              const dayShifts = byDate[iso] ?? []
+              const req = requiredForWeekday(i)
+              return (
+                <Card key={iso} className="space-y-2.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-semibold">יום {WEEKDAY_NAMES[i]}</span>
+                    <span className="text-sm text-neutral-500">{formatDate(day)}</span>
+                    {holidays[iso] && <HolidayBadge info={holidays[iso]} />}
+                  </div>
+                  {SHIFTS.map((sh) => (
+                    <ShiftSection
+                      key={sh}
+                      date={iso}
+                      shift={sh}
+                      assignments={dayShifts.filter((s) => s.shift === sh)}
+                      required={req[sh]}
+                      avail={weekAvail ?? []}
+                      employees={employees ?? []}
+                    />
+                  ))}
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* מסך רחב — טבלת שבוע עם גרירה */}
+          <div className="hidden lg:block">
+            <ScheduleGrid
+              days={days}
+              byDate={byDate}
+              requiredForWeekday={requiredForWeekday}
+              weekAvail={weekAvail ?? []}
+              employees={employees ?? []}
+              holidays={holidays}
+            />
+          </div>
+        </>
       )}
     </div>
   )
