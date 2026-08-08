@@ -27,6 +27,14 @@ export function RequestAvailability() {
     return `${origin}/availability/${token}?week=${from}`
   }
 
+  const groupLink = `${origin}/availability?week=${from}`
+  const groupMessage = [
+    `היי, נא למלא זמינות לשבוע ${dm(from)}–${dm(to)}:`,
+    groupLink,
+    ``,
+    `בוחרים את השם שלכם, מזינים את מספר הטלפון לאימות, ומסמנים בוקר/ערב לכל יום.`,
+  ].join('\n')
+
   function personalMessage(name: string, token: string): string {
     return [
       `היי ${name},`,
@@ -57,6 +65,30 @@ export function RequestAvailability() {
         <Card className="py-10 text-center text-neutral-400">אין עובדים פעילים.</Card>
       ) : (
         <>
+          <Card className="space-y-3">
+            <div>
+              <h2 className="font-semibold">קישור קבוצתי אחד</h2>
+              <p className="mt-1 text-xs text-neutral-500">
+                שולחים לכולם. כל אחד בוחר את שמו ומזין את הטלפון לאימות — אפשר למלא רק בשם
+                שלך.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <CopyButton text={groupMessage} />
+              <a
+                href={waLink('', groupMessage)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1"
+              >
+                <Button size="sm" className="w-full">
+                  <MessageCircle className="h-4 w-4" />
+                  שיתוף בוואטסאפ
+                </Button>
+              </a>
+            </div>
+          </Card>
+
           <h2 className="px-1 font-semibold">שליחה אישית לכל עובד</h2>
           <p className="px-1 text-xs text-neutral-500">
             כל עובד מקבל קישור אישי משלו, נעול לשבוע הזה בלבד.
